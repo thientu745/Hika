@@ -1,0 +1,110 @@
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+
+export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
+  const router = useRouter();
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signIn(email.trim().toLowerCase(), password);
+      router.replace('/(tabs)/home');
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'An error occurred during login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View className="flex-1 bg-white px-6 justify-center">
+      <View className="max-w-sm w-full mx-auto">
+        {/* Header */}
+        <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</Text>
+        <Text className="text-gray-600 mb-8">Sign in to continue your hiking journey</Text>
+
+        {/* Email Input */}
+        <View className="mb-4">
+          <Text className="text-gray-700 mb-2 font-medium">Email</Text>
+          <TextInput
+            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+        </View>
+
+        {/* Password Input */}
+        <View className="mb-6">
+          <Text className="text-gray-700 mb-2 font-medium">Password</Text>
+          <TextInput
+            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password"
+          />
+        </View>
+
+        {/* Login Button */}
+        <TouchableOpacity
+          className="bg-green-500 py-4 px-6 rounded-lg items-center mb-4"
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-white text-lg font-semibold">Log In</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Sign Up Link */}
+        <View className="flex-row justify-center items-center">
+          <Text className="text-gray-600">Don't have an account? </Text>
+          <Link href="/signup" asChild>
+            <TouchableOpacity>
+              <Text className="text-green-500 font-semibold">Sign Up</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        {/* Back to Welcome */}
+        <View className="mt-6">
+          <Link href="/welcome" asChild>
+            <TouchableOpacity>
+              <Text className="text-gray-500 text-center">Back to Welcome</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </View>
+    </View>
+  );
+}
+
