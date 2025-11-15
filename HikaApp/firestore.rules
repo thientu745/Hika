@@ -68,14 +68,15 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
     
-    // Achievements collection (read-only for users)
+    // Achievements collection
     match /achievements/{achievementId} {
       // Anyone authenticated can read achievements
       allow read: if isAuthenticated();
       
-      // Only allow creation/update by admin (you can restrict this further)
-      // For now, allow authenticated users to create (you may want to restrict this)
-      allow create, update, delete: if false; // Disable for now, manage via Firebase Console
+      // Allow authenticated users to create/update achievements (for initialization)
+      // You can restrict this further after initialization by changing to: if false;
+      allow create, update: if isAuthenticated();
+      allow delete: if false; // Prevent deletion
     }
   }
 }

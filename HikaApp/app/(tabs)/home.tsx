@@ -26,9 +26,6 @@ const Home = () => {
         <Text className="text-2xl font-bold text-gray-900 mb-4">
           Welcome back, {displayName}!
         </Text>
-        {!userProfile && (
-          <Text className="text-gray-500 text-sm mb-2">Loading profile...</Text>
-        )}
         <Text className="text-gray-600 mb-6">
           Feed coming soon...
         </Text>
