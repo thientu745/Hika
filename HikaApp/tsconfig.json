@@ -6,7 +6,9 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   },
   "include": [
     "**/*.ts",
@@ -14,5 +16,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
-  ]
+  ],
 }
