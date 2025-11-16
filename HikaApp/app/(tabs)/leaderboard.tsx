@@ -119,30 +119,49 @@ function LeaderboardContent() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-hika-darkgreen">
-      <View className="px-4 py-6">
+    <ScrollView 
+      style={{ flex: 1, backgroundColor: '#516D58' }}
+      contentContainerStyle={{ paddingBottom: 20 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         {/* Header */}
-        <Text className="text-3xl font-bold text-white mb-6">Leaderboard</Text>
+        <Text style={{ fontSize: 28, fontWeight: '800', color: '#FFFFFF', marginBottom: 24 }}>
+          Leaderboard
+        </Text>
 
         {/* Type Filter (Global/Friends) */}
-        <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-300 mb-2">Filter</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-            <View className="flex-row space-x-2">
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 }}>
+            Filter
+          </Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingRight: 16 }}
+          >
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               {(['global', 'friends'] as const).map((type) => (
                 <TouchableOpacity
                   key={type}
                   onPress={() => setLeaderboardType(type)}
-                  className={`px-4 py-2 rounded-full border ${
-                    leaderboardType === type
-                      ? 'bg-hika-green border-hika-green'
-                      : 'bg-white/10 border-white/30'
-                  }`}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    backgroundColor: leaderboardType === type ? '#92C59F' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: leaderboardType === type ? '#92C59F' : '#E5E7EB',
+                  }}
+                  activeOpacity={0.7}
                 >
                   <Text
-                    className={`font-medium capitalize ${
-                      leaderboardType === type ? 'text-white' : 'text-gray-300'
-                    }`}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: leaderboardType === type ? '#FFFFFF' : '#374151',
+                      textTransform: 'capitalize',
+                    }}
                   >
                     {type === 'global' ? 'Global' : 'Friends'}
                   </Text>
@@ -153,24 +172,37 @@ function LeaderboardContent() {
         </View>
 
         {/* Period Filter */}
-        <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-300 mb-2">Time Period</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-            <View className="flex-row space-x-2">
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 }}>
+            Time Period
+          </Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingRight: 16 }}
+          >
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               {(['daily', 'weekly', 'monthly', 'yearly'] as LeaderboardPeriod[]).map((p) => (
                 <TouchableOpacity
                   key={p}
                   onPress={() => setPeriod(p)}
-                  className={`px-4 py-2 rounded-full border ${
-                    period === p
-                      ? 'bg-hika-green border-hika-green'
-                      : 'bg-white/10 border-white/30'
-                  }`}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    backgroundColor: period === p ? '#92C59F' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: period === p ? '#92C59F' : '#E5E7EB',
+                  }}
+                  activeOpacity={0.7}
                 >
                   <Text
-                    className={`font-medium capitalize ${
-                      period === p ? 'text-white' : 'text-gray-300'
-                    }`}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: period === p ? '#FFFFFF' : '#374151',
+                      textTransform: 'capitalize',
+                    }}
                   >
                     {p}
                   </Text>
@@ -181,24 +213,37 @@ function LeaderboardContent() {
         </View>
 
         {/* Stat Filter */}
-        <View className="mb-6">
-          <Text className="text-sm font-medium text-gray-300 mb-2">Stat</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-            <View className="flex-row space-x-2">
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 }}>
+            Stat
+          </Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingRight: 16 }}
+          >
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               {(['distance', 'hikes', 'time'] as LeaderboardStat[]).map((s) => (
                 <TouchableOpacity
                   key={s}
                   onPress={() => setStat(s)}
-                  className={`px-4 py-2 rounded-full border ${
-                    stat === s
-                      ? 'bg-hika-green border-hika-green'
-                      : 'bg-white/10 border-white/30'
-                  }`}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10,
+                    borderRadius: 20,
+                    backgroundColor: stat === s ? '#92C59F' : '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: stat === s ? '#92C59F' : '#E5E7EB',
+                  }}
+                  activeOpacity={0.7}
                 >
                   <Text
-                    className={`font-medium capitalize ${
-                      stat === s ? 'text-white' : 'text-gray-300'
-                    }`}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '600',
+                      color: stat === s ? '#FFFFFF' : '#374151',
+                      textTransform: 'capitalize',
+                    }}
                   >
                     {getStatLabel(s)}
                   </Text>
@@ -210,21 +255,40 @@ function LeaderboardContent() {
 
         {/* Leaderboard List */}
         {loadingLeaderboard ? (
-          <View className="py-12 items-center">
-            <ActivityIndicator size="large" color="#92C59F" />
-            <Text className="text-gray-300 mt-4">Loading leaderboard...</Text>
+          <View style={{ paddingVertical: 48, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <Text style={{ color: '#FFFFFF', marginTop: 16, fontSize: 16 }}>
+              Loading leaderboard...
+            </Text>
           </View>
         ) : entries.length === 0 ? (
-          <View className="py-12 items-center">
-            <Ionicons name="trophy-outline" size={64} color="#6B7280" />
-            <Text className="text-gray-300 mt-4 text-center">
+          <View style={{
+            paddingVertical: 48,
+            alignItems: 'center',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            paddingHorizontal: 24,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 2,
+          }}>
+            <Ionicons name="trophy-outline" size={64} color="#D1D5DB" />
+            <Text style={{ 
+              color: '#374151', 
+              marginTop: 16, 
+              fontSize: 16, 
+              fontWeight: '600',
+              textAlign: 'center' 
+            }}>
               {leaderboardType === 'friends' 
                 ? 'No friends on the leaderboard yet.' 
                 : 'No entries found.'}
             </Text>
           </View>
         ) : (
-          <View className="space-y-2">
+          <View style={{ gap: 12 }}>
             {entries.map((entry) => {
               const rankIcon = getRankIcon(entry.rank);
               const isCurrentUser = entry.userId === user?.uid;
@@ -241,27 +305,39 @@ function LeaderboardContent() {
                       console.warn('Navigation error:', e);
                     }
                   }}
-                  className={`flex-row items-center p-4 rounded-lg border ${
-                    isCurrentUser 
-                      ? 'bg-white border-hika-green' 
-                      : 'bg-white border-gray-200'
-                  }`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 16,
+                    borderRadius: 16,
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: isCurrentUser ? 2 : 1,
+                    borderColor: isCurrentUser ? '#92C59F' : '#E5E7EB',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  }}
+                  activeOpacity={0.7}
                 >
                   {/* Rank */}
-                  <View className="w-12 items-center">
+                  <View style={{ width: 48, alignItems: 'center' }}>
                     {rankIcon ? (
-                      <Ionicons name={rankIcon.name} size={24} color={rankIcon.color} />
+                      <Ionicons name={rankIcon.name} size={28} color={rankIcon.color} />
                     ) : (
-                      <Text className={`text-lg font-bold ${
-                        isCurrentUser ? 'text-hika-green' : 'text-gray-600'
-                      }`}>
+                      <Text style={{
+                        fontSize: 18,
+                        fontWeight: '700',
+                        color: isCurrentUser ? '#516D58' : '#6B7280',
+                      }}>
                         {entry.rank}
                       </Text>
                     )}
                   </View>
 
                   {/* Profile Picture */}
-                  <View className="w-12 h-12 mr-3">
+                  <View style={{ width: 48, height: 48, marginRight: 12 }}>
                     {entry.userProfilePictureUrl ? (
                       <Image
                         source={{ uri: entry.userProfilePictureUrl }}
@@ -275,8 +351,15 @@ function LeaderboardContent() {
                         contentFit="cover"
                       />
                     ) : (
-                      <View className="w-full h-full bg-hika-green rounded-full items-center justify-center">
-                        <Text className="text-white font-bold text-lg">
+                      <View style={{
+                        width: 48,
+                        height: 48,
+                        backgroundColor: '#92C59F',
+                        borderRadius: 24,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 18 }}>
                           {entry.userDisplayName?.charAt(0).toUpperCase()}
                         </Text>
                       </View>
@@ -284,23 +367,30 @@ function LeaderboardContent() {
                   </View>
 
                   {/* User Info */}
-                  <View className="flex-1">
-                    <View className="flex-row items-center">
-                      <Text className="text-base font-semibold text-gray-900">
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
                         {entry.userDisplayName}
                       </Text>
                       {isCurrentUser && (
-                        <Text className="ml-2 text-xs text-hika-green font-medium">(You)</Text>
+                        <Text style={{ 
+                          marginLeft: 8, 
+                          fontSize: 12, 
+                          color: '#516D58', 
+                          fontWeight: '600' 
+                        }}>
+                          (You)
+                        </Text>
                       )}
                     </View>
-                    <Text className="text-sm text-gray-600 mt-1">
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
                       {formatValue(entry.value, stat)}
                     </Text>
                   </View>
 
                   {/* Value */}
-                  <View className="items-end">
-                    <Text className="text-lg font-bold text-gray-900">
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827' }}>
                       {formatValue(entry.value, stat)}
                     </Text>
                   </View>

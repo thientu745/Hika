@@ -1,12 +1,32 @@
-import { Stack } from "expo-router";
+import { Stack, useSegments } from "expo-router";
 import { AuthProvider } from "../contexts/AuthContext";
 import "../global.css";
 import Header from "../components/ui/Header";
+import { useEffect, useState } from "react";
+
+function ConditionalHeader() {
+  const segments = useSegments();
+  const [showHeader, setShowHeader] = useState(true);
+
+  useEffect(() => {
+    // Hide header on welcome, login, and signup screens
+    // Check all segments to handle nested routes
+    const hideHeaderRoutes = ['welcome', 'login', 'signup'];
+    const shouldHide = segments.some(segment => hideHeaderRoutes.includes(segment));
+    setShowHeader(!shouldHide);
+  }, [segments]);
+
+  if (!showHeader) {
+    return null;
+  }
+
+  return <Header />;
+}
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Header />
+      <ConditionalHeader />
       <Stack>
         <Stack.Screen 
           name="(tabs)" 

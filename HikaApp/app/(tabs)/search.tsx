@@ -163,19 +163,43 @@ const Search = () => {
   };
 
   return (
-    <View className="flex-1 bg-hika-darkgreen">
-      <ScrollView className="flex-1">
-        <View className="px-4 py-6">
-          <Text className="text-2xl font-bold text-white mb-4">Search Trails</Text>
+    <View style={{ flex: 1, backgroundColor: '#516D58' }}>
+      <ScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          <Text style={{ fontSize: 28, fontWeight: '800', color: '#FFFFFF', marginBottom: 20 }}>
+            Search Trails
+          </Text>
           
           {/* Search Input */}
-          <View className="mb-4">
-            <View className="flex-row items-center border border-white rounded-lg px-4 py-3 bg-white">
-              <Ionicons name="search-outline" size={20} color="#6B7280" />
+          <View style={{ marginBottom: 16 }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              paddingHorizontal: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}>
+              <Ionicons name="search" size={20} color="#6B7280" style={{ marginRight: 12 }} />
               <TextInput
-                className="flex-1 ml-2 text-base text-black"
+                style={{
+                  flex: 1,
+                  fontSize: 16,
+                  color: '#111827',
+                  paddingVertical: 12,
+                }}
                 placeholder="Search by trail name..."
-                placeholderTextColor="black"
+                placeholderTextColor="#9CA3AF"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCapitalize="none"
@@ -189,13 +213,35 @@ const Search = () => {
           </View>
 
           {/* Location Filter - State Picker */}
-          <View className="mb-4">
-            <Text className="text-white mb-2 font-medium">State</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 8 }}>
+              State
+            </Text>
             <TouchableOpacity
               onPress={() => setShowStatePicker(true)}
-              className="border border-gray-300 rounded-lg px-4 py-3 flex-row items-center justify-between bg-white"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 2,
+                elevation: 1,
+              }}
+              activeOpacity={0.7}
             >
-              <Text className={`text-base ${locationFilter ? 'text-gray-900' : 'text-gray-400'}`}>
+              <Text style={{
+                fontSize: 16,
+                color: locationFilter ? '#111827' : '#9CA3AF',
+                fontWeight: locationFilter ? '500' : '400',
+              }}>
                 {locationFilter || 'Select a state...'}
               </Text>
               <Ionicons name="chevron-down" size={20} color="#6B7280" />
@@ -203,10 +249,17 @@ const Search = () => {
             {locationFilter && (
               <TouchableOpacity
                 onPress={() => setLocationFilter('')}
-                className="mt-2 flex-row items-center"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginTop: 8,
+                }}
+                activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={16} color="#6B7280" />
-                <Text className="text-sm text-gray-800 ml-1">Clear state filter</Text>
+                <Ionicons name="close-circle" size={16} color="#FFFFFF" />
+                <Text style={{ fontSize: 13, color: '#FFFFFF', marginLeft: 6, fontWeight: '500' }}>
+                  Clear state filter
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -280,10 +333,16 @@ const Search = () => {
           )}
 
           {/* Difficulty Filter */}
-          <View className="mb-6">
-            <Text className="text-white mb-2 font-bold">Difficulty</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-              <View className="flex-row">
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 }}>
+              Difficulty
+            </Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: 16 }}
+            >
+              <View style={{ flexDirection: 'row', gap: 8 }}>
                 {['', 'Easy', 'Moderate', 'Hard', 'Expert'].map((diff, index) => (
                   <TouchableOpacity
                     key={diff || `all-${index}`}
@@ -343,16 +402,23 @@ const Search = () => {
                         setHasSearched(false);
                       }
                     }}
-                    className={`px-4 py-2 rounded-full border ${
-                      difficultyFilter === diff
-                        ? 'bg-white border-white'
-                        : 'bg-hika-darkgreen border-white'
-                    } ${index > 0 ? 'ml-2' : ''}`}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: difficultyFilter === diff ? '#92C59F' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: difficultyFilter === diff ? '#92C59F' : '#E5E7EB',
+                      marginRight: 8,
+                    }}
+                    activeOpacity={0.7}
                   >
                     <Text
-                      className={`font-medium ${
-                        difficultyFilter === diff ? 'text-hika-darkgreen' : 'text-white'
-                      }`}
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: difficultyFilter === diff ? '#FFFFFF' : '#374151',
+                      }}
                     >
                       {diff || 'All'}
                     </Text>
@@ -363,18 +429,34 @@ const Search = () => {
           </View>
 
           {/* OpenStreetMap Toggle */}
-          <View className="mb-6">
-            <View className="flex-row items-center justify-between bg-white p-4 rounded-lg border border-white">
-              <View className="flex-1 mr-4">
-                <Text className="text-black font-medium mb-1">Search OpenStreetMap</Text>
-                <Text className="text-sm text-black">
+          <View style={{ marginBottom: 20 }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}>
+              <View style={{ flex: 1, marginRight: 16 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 4 }}>
+                  Search OpenStreetMap
+                </Text>
+                <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 18 }}>
                   Automatically fetch and save trails from OpenStreetMap when searching by name or location
                 </Text>
               </View>
               <Switch
                 value={useOpenStreetMap}
                 onValueChange={setUseOpenStreetMap}
-                trackColor={{ false: '#DB1631', true: '#92C59F' }}
+                trackColor={{ false: '#D1D5DB', true: '#92C59F' }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -384,43 +466,77 @@ const Search = () => {
           <TouchableOpacity
             onPress={performSearch}
             disabled={isSearching}
-            className={`py-4 rounded-lg items-center mb-6 ${
-              isSearching ? 'bg-gray-400' : 'bg-white'
-            }`}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: isSearching ? '#D1D5DB' : '#92C59F',
+              borderRadius: 12,
+              paddingVertical: 16,
+              marginBottom: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isSearching ? 0 : 0.2,
+              shadowRadius: 8,
+              elevation: isSearching ? 0 : 6,
+            }}
+            activeOpacity={0.8}
           >
             {isSearching ? (
-              <View className="flex-row items-center">
-                <ActivityIndicator size="small" color="#516D58" />
-                <Text className="text-hika-darkgreen text-lg font-semibold ml-2">Searching...</Text>
-              </View>
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginLeft: 12 }}>
+                  Searching...
+                </Text>
+              </>
             ) : (
-              <View className="flex-row items-center">
-                <Ionicons name="search" size={20} color="#516D58" />
-                <Text className="text-hika-darkgreen text-lg font-semibold ml-2">Search Trails</Text>
-              </View>
+              <>
+                <Ionicons name="search" size={20} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginLeft: 12 }}>
+                  Search Trails
+                </Text>
+              </>
             )}
           </TouchableOpacity>
 
           {/* Success Message */}
           {savedTrailsCount !== null && savedTrailsCount > 0 && (
-            <View className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-              <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                <Text className="ml-2 text-green-800 font-medium">
-                  Automatically saved {savedTrailsCount} new trail{savedTrailsCount !== 1 ? 's' : ''} to database
-                </Text>
-              </View>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#ECFDF5',
+              borderWidth: 1,
+              borderColor: '#A7F3D0',
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 16,
+            }}>
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              <Text style={{ marginLeft: 8, fontSize: 14, color: '#065F46', fontWeight: '500', flex: 1 }}>
+                Automatically saved {savedTrailsCount} new trail{savedTrailsCount !== 1 ? 's' : ''} to database
+              </Text>
             </View>
           )}
 
           {/* Search Results - No trails found */}
           {!isSearching && hasSearched && trails.length === 0 && !isLoadingOverpass && (
-            <View className="items-center py-8 bg-white rounded-lg">
+            <View style={{
+              alignItems: 'center',
+              paddingVertical: 48,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              paddingHorizontal: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
               <Ionicons name="trail-sign-outline" size={64} color="#D1D5DB" />
-              <Text className="mt-4 text-gray-600 text-center font-semibold">
+              <Text style={{ marginTop: 16, fontSize: 18, color: '#374151', fontWeight: '600', textAlign: 'center' }}>
                 No trails found.
               </Text>
-              <Text className="mt-2 text-sm text-gray-500 text-center px-4">
+              <Text style={{ marginTop: 8, fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 }}>
                 {locationFilter.trim() 
                   ? 'No trails found matching your search. Try a different search term or state.'
                   : searchQuery.trim()
@@ -432,71 +548,95 @@ const Search = () => {
 
           {/* Loading state */}
           {isSearching && (
-            <View className="items-center py-8">
+            <View style={{ alignItems: 'center', paddingVertical: 48 }}>
               <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text className="mt-4 text-white">Searching trails...</Text>
+              <Text style={{ marginTop: 16, fontSize: 16, color: '#FFFFFF', fontWeight: '500' }}>
+                Searching trails...
+              </Text>
               {isLoadingOverpass && (
-                <Text className="mt-2 text-sm text-gray-200">Fetching from OpenStreetMap...</Text>
+                <Text style={{ marginTop: 8, fontSize: 14, color: '#E5E7EB' }}>
+                  Fetching from OpenStreetMap...
+                </Text>
               )}
             </View>
           )}
 
-          {/* Trail Results - existing trail cards remain the same */}
+          {/* Trail Results */}
           {!isSearching && trails.length > 0 && (
-            <View className="mb-4">
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-gray-600">
+            <View style={{ marginBottom: 16 }}>
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 16,
+                paddingVertical: 8,
+              }}>
+                <Text style={{ fontSize: 15, color: '#FFFFFF', fontWeight: '500' }}>
                   Found {trails.length} trail{trails.length !== 1 ? 's' : ''}
                 </Text>
                 
                 {/* Sort Options */}
-                <View className="flex-row items-center">
-                  <Text className="text-sm text-gray-600 mr-2">Sort:</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 12, color: '#FFFFFF', marginRight: 4 }}>Sort:</Text>
                   <TouchableOpacity
                     onPress={() => setSortBy(sortBy === 'distance-asc' ? 'none' : 'distance-asc')}
-                    className={`px-3 py-1 rounded border mr-2 ${
-                      sortBy === 'distance-asc'
-                        ? 'bg-green-500 border-green-500'
-                        : 'bg-white border-gray-300'
-                    }`}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: sortBy === 'distance-asc' ? '#92C59F' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: sortBy === 'distance-asc' ? '#92C59F' : '#E5E7EB',
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <View className="flex-row items-center">
-                      <Ionicons 
-                        name="arrow-up" 
-                        size={14} 
-                        color={sortBy === 'distance-asc' ? '#FFFFFF' : '#6B7280'} 
-                      />
-                      <Text
-                        className={`text-xs font-medium ml-1 ${
-                          sortBy === 'distance-asc' ? 'text-white' : 'text-gray-700'
-                        }`}
-                      >
-                        Distance
-                      </Text>
-                    </View>
+                    <Ionicons 
+                      name="arrow-up" 
+                      size={12} 
+                      color={sortBy === 'distance-asc' ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        marginLeft: 4,
+                        color: sortBy === 'distance-asc' ? '#FFFFFF' : '#374151',
+                      }}
+                    >
+                      Distance
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setSortBy(sortBy === 'distance-desc' ? 'none' : 'distance-desc')}
-                    className={`px-3 py-1 rounded border ${
-                      sortBy === 'distance-desc'
-                        ? 'bg-green-500 border-green-500'
-                        : 'bg-white border-gray-300'
-                    }`}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      backgroundColor: sortBy === 'distance-desc' ? '#92C59F' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: sortBy === 'distance-desc' ? '#92C59F' : '#E5E7EB',
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <View className="flex-row items-center">
-                      <Ionicons 
-                        name="arrow-down" 
-                        size={14} 
-                        color={sortBy === 'distance-desc' ? '#FFFFFF' : '#6B7280'} 
-                      />
-                      <Text
-                        className={`text-xs font-medium ml-1 ${
-                          sortBy === 'distance-desc' ? 'text-white' : 'text-gray-700'
-                        }`}
-                      >
-                        Distance
-                      </Text>
-                    </View>
+                    <Ionicons 
+                      name="arrow-down" 
+                      size={12} 
+                      color={sortBy === 'distance-desc' ? '#FFFFFF' : '#6B7280'} 
+                    />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        fontWeight: '600',
+                        marginLeft: 4,
+                        color: sortBy === 'distance-desc' ? '#FFFFFF' : '#374151',
+                      }}
+                    >
+                      Distance
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -505,51 +645,95 @@ const Search = () => {
                 <TouchableOpacity
                   key={trail.id}
                   onPress={() => handleTrailPress(trail.id)}
-                  className="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm"
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 12,
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  }}
+                  activeOpacity={0.7}
                 >
-                  <View className="flex-row">
+                  <View style={{ flexDirection: 'row' }}>
                     {/* Trail Image Placeholder */}
-                    <View className="w-20 h-20 bg-green-100 rounded-lg items-center justify-center mr-4">
-                      <Ionicons name="trail-sign" size={32} color="#10b981" />
+                    <View style={{
+                      width: 80,
+                      height: 80,
+                      backgroundColor: '#E8F5E9',
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 12,
+                    }}>
+                      <Ionicons name="trail-sign" size={36} color="#516D58" />
                     </View>
 
                     {/* Trail Info */}
-                    <View className="flex-1">
-                      <Text className="text-lg font-semibold text-gray-900 mb-1" numberOfLines={1}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{
+                        fontSize: 18,
+                        fontWeight: '700',
+                        color: '#111827',
+                        marginBottom: 6,
+                      }} numberOfLines={1}>
                         {trail.name || 'Unnamed Trail'}
                       </Text>
-                      <View className="flex-row items-center mb-2">
-                        <Ionicons name="location-outline" size={14} color="#6B7280" />
-                        <Text className="text-sm text-gray-600 ml-1" numberOfLines={1}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                        <Ionicons name="location" size={14} color="#6B7280" />
+                        <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 4 }} numberOfLines={1}>
                           {trail.location || 'Unknown Location'}
                         </Text>
                       </View>
                       
-                      <View className="flex-row items-center flex-wrap">
-                        <View className={`px-2 py-1 rounded ${getDifficultyColor(trail.difficulty || 'Moderate')} mr-2 mb-1`}>
-                          <Text className="text-xs font-medium">{trail.difficulty || 'Moderate'}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <View style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 6,
+                          backgroundColor: trail.difficulty === 'Easy' ? '#D1FAE5' : 
+                                         trail.difficulty === 'Moderate' ? '#FEF3C7' :
+                                         trail.difficulty === 'Hard' ? '#FED7AA' :
+                                         trail.difficulty === 'Expert' ? '#FEE2E2' : '#F3F4F6',
+                        }}>
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '600',
+                            color: trail.difficulty === 'Easy' ? '#065F46' : 
+                                   trail.difficulty === 'Moderate' ? '#92400E' :
+                                   trail.difficulty === 'Hard' ? '#9A3412' :
+                                   trail.difficulty === 'Expert' ? '#991B1B' : '#374151',
+                          }}>
+                            {trail.difficulty || 'Moderate'}
+                          </Text>
                         </View>
                         {(trail.distance !== undefined && trail.distance !== null) && (
-                          <View className="flex-row items-center mr-3 mb-1">
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Ionicons name="resize-outline" size={14} color="#6B7280" />
-                            <Text className="text-xs text-gray-600 ml-1">{formatDistance(trail.distance)}</Text>
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }}>
+                              {formatDistance(trail.distance)}
+                            </Text>
                           </View>
                         )}
                         {(trail.elevationGain !== undefined && trail.elevationGain !== null && trail.elevationGain > 0) && (
-                          <View className="flex-row items-center mb-1">
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Ionicons name="trending-up-outline" size={14} color="#6B7280" />
-                            <Text className="text-xs text-gray-600 ml-1">
+                            <Text style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }}>
                               {Math.round(trail.elevationGain)}m
                             </Text>
                           </View>
                         )}
                       </View>
-
                       {(trail.rating !== undefined && trail.rating !== null && trail.rating > 0 && 
                         trail.ratingCount !== undefined && trail.ratingCount !== null && trail.ratingCount > 0) && (
-                        <View className="flex-row items-center mt-1">
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                           <Ionicons name="star" size={14} color="#FBBF24" />
-                          <Text className="text-xs text-gray-600 ml-1">
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginLeft: 4 }}>
                             {trail.rating.toFixed(1)} ({trail.ratingCount})
                           </Text>
                         </View>
@@ -563,12 +747,23 @@ const Search = () => {
 
           {/* Initial state */}
           {!hasSearched && !isSearching && (
-            <View className="items-center py-8">
-              <Ionicons name="search-outline" size={64} color="#FFFFFF" />
-              <Text className="mt-4 text-white text-center font-semibold">
+            <View style={{
+              alignItems: 'center',
+              paddingVertical: 48,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              paddingHorizontal: 24,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
+              <Ionicons name="search-outline" size={64} color="#516D58" />
+              <Text style={{ marginTop: 16, fontSize: 18, color: '#111827', fontWeight: '600', textAlign: 'center' }}>
                 Search for trails
               </Text>
-              <Text className="mt-2 text-sm text-white text-center px-4">
+              <Text style={{ marginTop: 8, fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 }}>
                 Enter a trail name, select a location, or choose a difficulty level to filter trails.
               </Text>
             </View>

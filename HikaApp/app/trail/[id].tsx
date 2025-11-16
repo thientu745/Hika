@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar, Alert, Platform } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -55,16 +55,28 @@ const TrailDetail = () => {
 
   if (error || !trail) {
     return (
-      <View className="flex-1 bg-white items-center justify-center px-4">
+      <View style={{ flex: 1, backgroundColor: '#516D58', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
         <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
-        <Text className="text-xl font-bold text-gray-900 mt-4 mb-2">
+        <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginTop: 16, marginBottom: 8, textAlign: 'center' }}>
           {error || 'Trail not found'}
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
-          className="bg-green-500 px-6 py-3 rounded-lg mt-4"
+          style={{
+            backgroundColor: '#92C59F',
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderRadius: 12,
+            marginTop: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 6,
+          }}
+          activeOpacity={0.8}
         >
-          <Text className="text-white font-semibold">Go Back</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -163,131 +175,220 @@ const TrailDetail = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar barStyle="dark-content" />
+    <View style={{ flex: 1, backgroundColor: '#516D58' }}>
+      <StatusBar barStyle="light-content" />
       {/* Header */}
-      <View className="bg-white border-b border-gray-200 px-4 py-3 flex-row items-center">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+      <View style={{
+        backgroundColor: '#516D58',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+        <TouchableOpacity 
+          onPress={() => router.back()} 
+          style={{ marginRight: 16 }} 
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-900 flex-1">Trail Details</Text>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', flex: 1 }}>Trail Details</Text>
       </View>
 
-      <ScrollView className="flex-1">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
         {/* Trail Image/Placeholder */}
-        <View className="w-full h-64 bg-green-100 items-center justify-center">
+        <View style={{ width: '100%', height: 250, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center' }}>
           {trail.images && trail.images.length > 0 ? (
             <Image
               source={{ uri: trail.images[0] }}
-              className="w-full h-full"
+              style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
             />
           ) : (
-            <Ionicons name="trail-sign" size={80} color="#10b981" />
+            <Ionicons name="trail-sign" size={80} color="#516D58" />
           )}
         </View>
 
-        <View className="px-4 py-6">
+        <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
           {/* Trail Name and Location */}
-          <View className="mb-4">
-            <Text className="text-3xl font-bold text-gray-900 mb-2">{trail.name}</Text>
-            <View className="flex-row items-center">
-              <Ionicons name="location" size={18} color="#6B7280" />
-              <Text className="text-base text-gray-600 ml-2">{trail.location}</Text>
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 28, fontWeight: '800', color: '#FFFFFF', marginBottom: 8 }}>{trail.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="location" size={18} color="#E5E7EB" />
+              <Text style={{ fontSize: 16, color: '#E5E7EB', marginLeft: 8 }}>{trail.location}</Text>
             </View>
           </View>
 
           {/* Rating */}
           {trail.rating > 0 && trail.ratingCount > 0 && (
-            <View className="flex-row items-center mb-4">
-              <View className="flex-row items-center mr-2">
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
                 {renderStars(trail.rating)}
               </View>
-              <Text className="text-base text-gray-700 font-medium">
+              <Text style={{ fontSize: 16, color: '#E5E7EB', fontWeight: '500' }}>
                 {trail.rating.toFixed(1)} ({trail.ratingCount} {trail.ratingCount === 1 ? 'review' : 'reviews'})
               </Text>
             </View>
           )}
 
           {/* Difficulty Badge */}
-          <View className="mb-4">
-            <View className={`self-start px-4 py-2 rounded-full border ${getDifficultyColor(trail.difficulty)}`}>
-              <Text className="font-semibold">{trail.difficulty}</Text>
+          <View style={{ marginBottom: 20 }}>
+            <View style={{
+              alignSelf: 'flex-start',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+              borderWidth: 1,
+              backgroundColor: trail.difficulty === 'Easy' ? '#D1FAE5' : 
+                             trail.difficulty === 'Moderate' ? '#FEF3C7' :
+                             trail.difficulty === 'Hard' ? '#FED7AA' :
+                             trail.difficulty === 'Expert' ? '#FEE2E2' : '#F3F4F6',
+              borderColor: trail.difficulty === 'Easy' ? '#A7F3D0' : 
+                          trail.difficulty === 'Moderate' ? '#FDE68A' :
+                          trail.difficulty === 'Hard' ? '#FDBA74' :
+                          trail.difficulty === 'Expert' ? '#FCA5A5' : '#D1D5DB',
+            }}>
+              <Text style={{
+                fontWeight: '600',
+                fontSize: 14,
+                color: trail.difficulty === 'Easy' ? '#065F46' : 
+                       trail.difficulty === 'Moderate' ? '#92400E' :
+                       trail.difficulty === 'Hard' ? '#9A3412' :
+                       trail.difficulty === 'Expert' ? '#991B1B' : '#374151',
+              }}>
+                {trail.difficulty}
+              </Text>
             </View>
           </View>
 
           {/* Stats Grid */}
-          <View className="bg-gray-50 rounded-lg p-4 mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">Trail Stats</Text>
-            <View className="flex-row flex-wrap">
-              <View className="w-1/2 mb-3">
-                <View className="flex-row items-center mb-1">
-                  <Ionicons name="resize-outline" size={20} color="#10b981" />
-                  <Text className="text-sm text-gray-600 ml-2">Distance</Text>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 24,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 2,
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 16 }}>Trail Stats</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              <View style={{ width: '50%', marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <Ionicons name="resize-outline" size={20} color="#516D58" />
+                  <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 8 }}>Distance</Text>
                 </View>
-                <Text className="text-xl font-bold text-gray-900">{formatDistance(trail.distance)}</Text>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>{formatDistance(trail.distance)}</Text>
               </View>
 
               {(trail.elevationGain !== undefined && trail.elevationGain !== null) && (
-                <View className="w-1/2 mb-3">
-                  <View className="flex-row items-center mb-1">
-                    <Ionicons name="trending-up-outline" size={20} color="#10b981" />
-                    <Text className="text-sm text-gray-600 ml-2">Elevation Gain</Text>
+                <View style={{ width: '50%', marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <Ionicons name="trending-up-outline" size={20} color="#516D58" />
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 8 }}>Elevation Gain</Text>
                   </View>
-                  <Text className="text-xl font-bold text-gray-900">
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>
                     {Math.round(trail.elevationGain)}m
                   </Text>
                 </View>
               )}
 
               {(trail.elevationLoss !== undefined && trail.elevationLoss !== null && trail.elevationLoss > 0) && (
-                <View className="w-1/2 mb-3">
-                  <View className="flex-row items-center mb-1">
-                    <Ionicons name="trending-down-outline" size={20} color="#10b981" />
-                    <Text className="text-sm text-gray-600 ml-2">Elevation Loss</Text>
+                <View style={{ width: '50%', marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <Ionicons name="trending-down-outline" size={20} color="#516D58" />
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 8 }}>Elevation Loss</Text>
                   </View>
-                  <Text className="text-xl font-bold text-gray-900">
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>
                     {Math.round(trail.elevationLoss)}m
                   </Text>
                 </View>
               )}
 
               {trail.path && trail.path.length > 0 && (
-                <View className="w-1/2 mb-3">
-                  <View className="flex-row items-center mb-1">
-                    <Ionicons name="map-outline" size={20} color="#10b981" />
-                    <Text className="text-sm text-gray-600 ml-2">Path Points</Text>
+                <View style={{ width: '50%', marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                    <Ionicons name="map-outline" size={20} color="#516D58" />
+                    <Text style={{ fontSize: 13, color: '#6B7280', marginLeft: 8 }}>Path Points</Text>
                   </View>
-                  <Text className="text-xl font-bold text-gray-900">{trail.path.length}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827' }}>{trail.path.length}</Text>
                 </View>
               )}
             </View>
           </View>
 
           {/* Description */}
-          <View className="mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-2">Description</Text>
-            <Text className="text-base text-gray-700 leading-6">
-              {trail.description || 'No description available for this trail.'}
-            </Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', marginBottom: 12 }}>Description</Text>
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
+              <Text style={{ fontSize: 15, color: '#374151', lineHeight: 24 }}>
+                {trail.description || 'No description available for this trail.'}
+              </Text>
+            </View>
           </View>
 
           {/* Map */}
-          <View className="mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">Trail Map</Text>
-            <TrailMap trail={trail} height={300} />
-            <View className="mt-3 bg-gray-50 rounded-lg p-3">
-              <Text className="text-sm text-gray-600 mb-1">Coordinates</Text>
-              <Text className="text-base text-gray-900 font-mono">
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', marginBottom: 12 }}>Trail Map</Text>
+            <View style={{
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
+              <TrailMap trail={trail} height={300} />
+            </View>
+            <View style={{
+              marginTop: 12,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 12,
+              padding: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+              elevation: 1,
+            }}>
+              <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 4 }}>Coordinates</Text>
+              <Text style={{ fontSize: 14, color: '#111827', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
                 {trail.coordinates.latitude.toFixed(6)}, {trail.coordinates.longitude.toFixed(6)}
               </Text>
             </View>
           </View>
 
           {/* Action Buttons */}
-          <View className="space-y-3 mb-6">
+          <View style={{ gap: 12, marginBottom: 24 }}>
             <TouchableOpacity
-              className="bg-green-500 rounded-lg p-4 flex-row items-center justify-center"
+              style={{
+                backgroundColor: '#92C59F',
+                borderRadius: 12,
+                paddingVertical: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#92C59F',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
               activeOpacity={0.8}
               onPress={() => {
                 if (!trail?.id) {
@@ -302,26 +403,51 @@ const TrailDetail = () => {
               }}
             >
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text className="text-white font-semibold text-lg ml-2">Start Trail</Text>
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18, marginLeft: 8 }}>Start Trail</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className="bg-blue-500 rounded-lg p-4 flex-row items-center justify-center"
+              style={{
+                backgroundColor: '#3B82F6',
+                borderRadius: 12,
+                paddingVertical: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#3B82F6',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
               onPress={() => setShowLogHikeModal(true)}
+              activeOpacity={0.8}
             >
               <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
-              <Text className="text-white font-semibold text-lg ml-2">Log Hike</Text>
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18, marginLeft: 8 }}>Log Hike</Text>
             </TouchableOpacity>
 
-            <View className="flex-row space-x-3">
+            <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
-                className={`flex-1 border rounded-lg p-3 flex-row items-center justify-center ${
-                  isInWishlist
-                    ? 'bg-blue-500 border-blue-500'
-                    : 'bg-blue-50 border-blue-200'
-                }`}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isInWishlist ? '#3B82F6' : '#FFFFFF',
+                  borderColor: isInWishlist ? '#3B82F6' : '#E5E7EB',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isInWishlist ? 0.2 : 0.05,
+                  shadowRadius: 4,
+                  elevation: isInWishlist ? 3 : 1,
+                }}
                 onPress={handleWishlistToggle}
                 disabled={processingWishlist}
+                activeOpacity={0.7}
               >
                 {processingWishlist ? (
                   <ActivityIndicator size="small" color={isInWishlist ? "#FFFFFF" : "#3B82F6"} />
@@ -332,7 +458,12 @@ const TrailDetail = () => {
                       size={20} 
                       color={isInWishlist ? "#FFFFFF" : "#3B82F6"} 
                     />
-                    <Text className={`font-medium ml-2 ${isInWishlist ? 'text-white' : 'text-blue-600'}`}>
+                    <Text style={{
+                      fontWeight: '600',
+                      marginLeft: 8,
+                      fontSize: 14,
+                      color: isInWishlist ? '#FFFFFF' : '#3B82F6',
+                    }}>
                       {isInWishlist ? 'In Wishlist' : 'Wishlist'}
                     </Text>
                   </>
@@ -340,13 +471,25 @@ const TrailDetail = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`flex-1 border rounded-lg p-3 flex-row items-center justify-center ${
-                  isInFavorites
-                    ? 'bg-red-500 border-red-500'
-                    : 'bg-red-50 border-red-200'
-                }`}
+                style={{
+                  flex: 1,
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isInFavorites ? '#EF4444' : '#FFFFFF',
+                  borderColor: isInFavorites ? '#EF4444' : '#E5E7EB',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isInFavorites ? 0.2 : 0.05,
+                  shadowRadius: 4,
+                  elevation: isInFavorites ? 3 : 1,
+                }}
                 onPress={handleFavoriteToggle}
                 disabled={processingFavorite}
+                activeOpacity={0.7}
               >
                 {processingFavorite ? (
                   <ActivityIndicator size="small" color={isInFavorites ? "#FFFFFF" : "#EF4444"} />
@@ -357,7 +500,12 @@ const TrailDetail = () => {
                       size={20} 
                       color={isInFavorites ? "#FFFFFF" : "#EF4444"} 
                     />
-                    <Text className={`font-medium ml-2 ${isInFavorites ? 'text-white' : 'text-red-600'}`}>
+                    <Text style={{
+                      fontWeight: '600',
+                      marginLeft: 8,
+                      fontSize: 14,
+                      color: isInFavorites ? '#FFFFFF' : '#EF4444',
+                    }}>
                       {isInFavorites ? 'Favorited' : 'Favorite'}
                     </Text>
                   </>

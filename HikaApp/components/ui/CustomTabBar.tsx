@@ -12,8 +12,9 @@ interface CustomTabBarProps {
 
 export const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, navigation, onAddHikePress }) => {
   return (
-    <SafeAreaView edges={['bottom']} style={styles.safeArea}>
-      <View style={styles.tabBarContainer}>
+    <View style={styles.safeArea}>
+      <SafeAreaView edges={['bottom']} style={{ backgroundColor: '#FFFFFF' }}>
+        <View style={styles.tabBarContainer}>
         <View style={styles.tabBarContent}>
         {/* Left tabs: Home and Search */}
         {state.routes.slice(0, 2).map((route, index) => {
@@ -43,17 +44,24 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, 
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarTestID}
               onPress={onPress}
-              style={styles.tabButton}
+              style={[
+                styles.tabButton,
+                isFocused && styles.tabButtonActive,
+              ]}
+              activeOpacity={0.7}
             >
               <Ionicons
                 name={iconName}
-                size={isFocused ? 28 : 24}
-                color={isFocused ? "#92C59F" : "#516D58"}
+                size={isFocused ? 26 : 22}
+                color={isFocused ? "#92C59F" : "#6B7280"}
               />
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: isFocused ? "#92C59F" : "#516D58" },
+                  { 
+                    color: isFocused ? "#92C59F" : "#6B7280",
+                    fontWeight: isFocused ? '700' : '600',
+                  },
                 ]}
               >
                 {options.title || route.name}
@@ -68,9 +76,10 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, 
           onPress={onAddHikePress}
           accessibilityRole="button"
           accessibilityLabel="Add Hike"
+          activeOpacity={0.8}
         >
           <View style={styles.centerButtonInner}>
-            <Ionicons name="add" size={28} color="#FFFFFF" />
+            <Ionicons name="add" size={30} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
 
@@ -92,7 +101,7 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, 
           };
 
           const iconName = route.name === 'leaderboard'
-            ? 'trophy-outline'
+            ? (isFocused ? 'trophy' : 'trophy-outline')
             : (isFocused ? 'person' : 'person-outline');
 
           return (
@@ -103,17 +112,24 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, 
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarTestID}
               onPress={onPress}
-              style={styles.tabButton}
+              style={[
+                styles.tabButton,
+                isFocused && styles.tabButtonActive,
+              ]}
+              activeOpacity={0.7}
             >
               <Ionicons
                 name={iconName}
-                size={isFocused ? 28 : 24}
-                color={isFocused ? "#92C59F" : "#516D58"}
+                size={isFocused ? 26 : 22}
+                color={isFocused ? "#92C59F" : "#6B7280"}
               />
               <Text
                 style={[
                   styles.tabLabel,
-                  { color: isFocused ? "#92C59F" : "#516D58" },
+                  { 
+                    color: isFocused ? "#92C59F" : "#6B7280",
+                    fontWeight: isFocused ? '700' : '600',
+                  },
                 ]}
               >
                 {options.title || route.name}
@@ -123,19 +139,20 @@ export const CustomTabBar: React.FC<CustomTabBarProps> = ({ state, descriptors, 
         })}
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
   },
   tabBarContainer: {
-    height: 60,
+    height: 70,
     paddingTop: 8,
-    paddingBottom: 8,
-    backgroundColor: '#ffffff',
+    paddingBottom: 0,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
@@ -144,17 +161,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     height: '100%',
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 6,
     minWidth: 0,
+    borderRadius: 12,
+  },
+  tabButtonActive: {
+    backgroundColor: '#F0FDF4',
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     marginTop: 4,
   },
@@ -166,20 +187,20 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   centerButtonInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#10b981',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#4ADE80',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#4ADE80',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
 

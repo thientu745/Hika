@@ -467,10 +467,10 @@ const TrackScreen = () => {
 
   if (locationPermission === null) {
     return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#10b981" />
-          <Text style={styles.loadingText}>Requesting location permission...</Text>
+      <View style={{ flex: 1, backgroundColor: '#516D58' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={{ color: '#FFFFFF', marginTop: 16, fontSize: 16 }}>Requesting location permission...</Text>
         </View>
       </View>
     );
@@ -478,45 +478,91 @@ const TrackScreen = () => {
 
   if (locationPermission === false) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+      <View style={{ flex: 1, backgroundColor: '#516D58' }}>
+        <View style={{
+          backgroundColor: '#516D58',
+          borderBottomWidth: 1,
+          borderBottomColor: '#E5E7EB',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Track Trail</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', flex: 1 }}>Track Trail</Text>
           <View style={{ width: 24 }} />
         </View>
-        <View style={styles.errorContainer}>
-          <Ionicons name="location-outline" size={64} color="#EF4444" />
-          <Text style={styles.errorTitle}>Location Permission Required</Text>
-          <Text style={styles.errorText}>
-            Please enable location permissions in your device settings to track your trail.
-          </Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={requestLocationPermission}
-          >
-            <Text style={styles.permissionButtonText}>Request Permission</Text>
-          </TouchableOpacity>
+        <View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 16,
+        }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 20,
+            padding: 32,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 3,
+          }}>
+            <Ionicons name="location-outline" size={64} color="#EF4444" />
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 16, marginBottom: 8, textAlign: 'center' }}>
+              Location Permission Required
+            </Text>
+            <Text style={{ fontSize: 15, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>
+              Please enable location permissions in your device settings to track your trail.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#92C59F',
+                paddingHorizontal: 24,
+                paddingVertical: 14,
+                borderRadius: 12,
+                shadowColor: '#92C59F',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
+              onPress={requestLocationPermission}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>Request Permission</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={{ flex: 1, backgroundColor: '#516D58' }}>
+      <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+      <View style={{
+        backgroundColor: '#516D58',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', flex: 1 }}>
           {trailName || (trailId ? 'Track Trail' : 'New Hike')}
         </Text>
         {isTracking && (
-          <TouchableOpacity onPress={resetTracking} style={styles.resetButton}>
+          <TouchableOpacity onPress={resetTracking} style={{ padding: 4 }} activeOpacity={0.7}>
             <Ionicons name="refresh-outline" size={24} color="#EF4444" />
           </TouchableOpacity>
         )}
@@ -524,7 +570,12 @@ const TrackScreen = () => {
       </View>
 
       {/* Map */}
-      <View style={styles.mapContainer}>
+      <View style={{
+        height: 400,
+        backgroundColor: '#E8F5E9',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+      }}>
         <ActiveTrailMap
           path={path}
           currentLocation={currentLocation || undefined}
@@ -533,59 +584,132 @@ const TrackScreen = () => {
       </View>
 
       {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Ionicons name="time-outline" size={24} color="#10b981" />
-          <Text style={styles.statValue}>{formatTime(elapsedTime)}</Text>
-          <Text style={styles.statLabel}>Time</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="resize-outline" size={24} color="#10b981" />
-          <Text style={styles.statValue}>{formatDistance(distance)}</Text>
-          <Text style={styles.statLabel}>Distance</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Ionicons name="trending-up-outline" size={24} color="#10b981" />
-          <Text style={styles.statValue}>{Math.round(elevationGain)}m</Text>
-          <Text style={styles.statLabel}>Elevation</Text>
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 20,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+      }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Ionicons name="time-outline" size={24} color="#516D58" />
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{formatTime(elapsedTime)}</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Time</Text>
+          </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Ionicons name="resize-outline" size={24} color="#516D58" />
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{formatDistance(distance)}</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Distance</Text>
+          </View>
+          <View style={{ alignItems: 'center', flex: 1 }}>
+            <Ionicons name="trending-up-outline" size={24} color="#516D58" />
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{Math.round(elevationGain)}m</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Elevation</Text>
+          </View>
         </View>
       </View>
 
       {/* Controls */}
-      <View style={styles.controlsContainer}>
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 16,
+        paddingVertical: 20,
+        paddingBottom: 32,
+      }}>
         {!isTracking ? (
           <TouchableOpacity
-            style={[styles.controlButton, styles.startButton]}
+            style={{
+              backgroundColor: '#92C59F',
+              borderRadius: 12,
+              paddingVertical: 18,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#92C59F',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 6,
+            }}
             onPress={startTracking}
+            activeOpacity={0.8}
           >
             <Ionicons name="play" size={28} color="#FFFFFF" />
-            <Text style={styles.controlButtonText}>Start Tracking</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18, marginLeft: 12 }}>Start Tracking</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.trackingControls}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
             {isPaused ? (
               <TouchableOpacity
-                style={[styles.controlButton, styles.resumeButton]}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#92C59F',
+                  borderRadius: 12,
+                  paddingVertical: 18,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#92C59F',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 6,
+                }}
                 onPress={resumeTracking}
+                activeOpacity={0.8}
               >
                 <Ionicons name="play" size={28} color="#FFFFFF" />
-                <Text style={styles.controlButtonText}>Resume</Text>
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18, marginLeft: 12 }}>Resume</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={[styles.controlButton, styles.pauseButton]}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#F59E0B',
+                  borderRadius: 12,
+                  paddingVertical: 18,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#F59E0B',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 6,
+                }}
                 onPress={pauseTracking}
+                activeOpacity={0.8}
               >
                 <Ionicons name="pause" size={28} color="#FFFFFF" />
-                <Text style={styles.controlButtonText}>Pause</Text>
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18, marginLeft: 12 }}>Pause</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.controlButton, styles.stopButton]}
+              style={{
+                flex: 1,
+                backgroundColor: '#EF4444',
+                borderRadius: 12,
+                paddingVertical: 18,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#EF4444',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
               onPress={stopTracking}
+              activeOpacity={0.8}
             >
               <Ionicons name="stop" size={28} color="#FFFFFF" />
-              <Text style={styles.controlButtonText}>Stop</Text>
+              <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 18, marginLeft: 12 }}>Stop</Text>
             </TouchableOpacity>
           </View>
         )}

@@ -442,10 +442,14 @@ const Profile = () => {
   };
 
   return (
-    <ScrollView className="flex-1 bg-hika-darkgreen">
-      <View className="px-4 py-6">
+    <ScrollView 
+      style={{ flex: 1, backgroundColor: '#516D58' }}
+      contentContainerStyle={{ paddingBottom: 20 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         {/* Profile Header */}
-        <View className="items-center mb-6">
+        <View style={{ alignItems: 'center', marginBottom: 24 }}>
           <TouchableOpacity
             onPress={handleImageUpload}
             disabled={uploading}
@@ -489,70 +493,119 @@ const Profile = () => {
               </View>
             )}
             {/* Upload overlay button */}
-            <View className="absolute bottom-0 right-0 w-8 h-8 bg-hika-darkgreen rounded-full items-center justify-center border-2 border-white">
+            <View style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 32,
+              height: 32,
+              backgroundColor: '#516D58',
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 2,
+              borderColor: '#FFFFFF',
+            }}>
               {uploading ? (
-                <ActivityIndicator size="small" color="white" />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text className="text-white text-xs font-bold">+</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>+</Text>
               )}
             </View>
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-white">{displayName}</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 12 }}>
+            {displayName}
+          </Text>
           
           {/* Followers & Following Stats (Instagram style) */}
-          <View className="flex-row items-center justify-center mt-4 mb-2">
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, marginBottom: 8 }}>
             <TouchableOpacity
               onPress={() => setShowFollowersList(true)}
-              className="items-center mx-6"
+              style={{ alignItems: 'center', marginHorizontal: 24 }}
+              activeOpacity={0.7}
             >
-              <Text className="text-xl font-bold text-white">{followers.length}</Text>
-              <Text className="text-sm text-gray-300 mt-1">Followers</Text>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF' }}>
+                {followers.length}
+              </Text>
+              <Text style={{ fontSize: 13, color: '#E5E7EB', marginTop: 4 }}>Followers</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowFollowingList(true)}
-              className="items-center mx-6"
+              style={{ alignItems: 'center', marginHorizontal: 24 }}
+              activeOpacity={0.7}
             >
-              <Text className="text-xl font-bold text-white">{following.length}</Text>
-              <Text className="text-sm text-gray-300 mt-1">Following</Text>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF' }}>
+                {following.length}
+              </Text>
+              <Text style={{ fontSize: 13, color: '#E5E7EB', marginTop: 4 }}>Following</Text>
             </TouchableOpacity>
           </View>
           {!userProfile && (
-            <Text className="text-gray-500 text-sm mt-2">
+            <Text style={{ color: '#9CA3AF', fontSize: 13, marginTop: 8 }}>
               Loading profile data...
             </Text>
           )}
-          {bio && <Text className="text-gray-300 mt-2 text-center">{bio}</Text>}
+          {bio && (
+            <Text style={{ color: '#E5E7EB', marginTop: 8, textAlign: 'center', fontSize: 14 }}>
+              {bio}
+            </Text>
+          )}
         </View>
 
         {/* Stats */}
-        <View className="bg-gray-50 rounded-lg p-4 mb-4">
-          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Stats</Text>
-          <View className="flex-row justify-between">
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 2,
+        }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
+            Stats
+          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#516D58' }}>
                 {(totalDistance / 1000).toFixed(1)} km
               </Text>
-              <Text className="text-gray-600 text-sm">Total Distance</Text>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Total Distance</Text>
             </View>
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">{totalHikes}</Text>
-              <Text className="text-gray-600 text-sm">Total Hikes</Text>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#516D58' }}>
+                {totalHikes}
+              </Text>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Total Hikes</Text>
             </View>
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#516D58' }}>
                 {Math.floor(totalTime / 3600)}h
               </Text>
-              <Text className="text-gray-600 text-sm">Total Time</Text>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Total Time</Text>
             </View>
           </View>
         </View>
 
         {/* Game Features */}
-        <View className="mb-6">
-          <Text className="text-lg font-semibold text-white mb-3">Rank & Progress</Text>
-          <View className="bg-gray-50 rounded-lg p-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center">
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', marginBottom: 12 }}>
+            Rank & Progress
+          </Text>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            padding: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+            elevation: 2,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 {(() => {
                   const rankVisuals = getRankVisuals(rank as UserRank);
                   return (
@@ -560,8 +613,15 @@ const Profile = () => {
                       style={[
                         styles.rankBadge,
                         { backgroundColor: rankVisuals.bgColor },
+                        {
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 20,
+                          marginRight: 12,
+                        },
                       ]}
-                      className="flex-row items-center px-3 py-2 rounded-full mr-3"
                     >
                       <Ionicons
                         name={rankVisuals.icon}
@@ -569,8 +629,12 @@ const Profile = () => {
                         color={rankVisuals.color}
                       />
                       <Text
-                        className="text-lg font-bold ml-2"
-                        style={{ color: rankVisuals.color }}
+                        style={{
+                          fontSize: 16,
+                          fontWeight: '700',
+                          marginLeft: 8,
+                          color: rankVisuals.color,
+                        }}
                       >
                         {rank}
                       </Text>
@@ -578,7 +642,7 @@ const Profile = () => {
                   );
                 })()}
               </View>
-              <Text className="text-gray-600 font-medium">
+              <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 15 }}>
                 {xp.toLocaleString()} XP
               </Text>
             </View>
@@ -596,11 +660,11 @@ const Profile = () => {
                       ]}
                     />
                   </View>
-                  <View className="flex-row justify-between mt-2">
-                    <Text className="text-xs text-gray-500">
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                    <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
                       {progress.rankMin.toLocaleString()} XP
                     </Text>
-                    <Text className="text-xs text-gray-500">
+                    <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
                       {progress.rankMax === Infinity
                         ? "∞"
                         : progress.rankMax.toLocaleString()}{" "}
@@ -609,9 +673,9 @@ const Profile = () => {
                   </View>
                   {progress.nextRank &&
                     progress.xpNeededForNextRank !== null && (
-                      <View className="mt-3 pt-3 border-t border-gray-200">
-                        <View className="flex-row items-center mb-1">
-                          <Text className="text-sm text-gray-700 mr-2">
+                      <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                          <Text style={{ fontSize: 13, color: '#374151', marginRight: 8 }}>
                             Next Rank:
                           </Text>
                           {(() => {
@@ -619,15 +683,19 @@ const Profile = () => {
                               progress.nextRank!
                             );
                             return (
-                              <View className="flex-row items-center">
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <Ionicons
                                   name={nextRankVisuals.icon}
                                   size={16}
                                   color={nextRankVisuals.color}
                                 />
                                 <Text
-                                  className="text-sm font-semibold ml-1"
-                                  style={{ color: nextRankVisuals.color }}
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: '600',
+                                    marginLeft: 4,
+                                    color: nextRankVisuals.color,
+                                  }}
                                 >
                                   {progress.nextRank}
                                 </Text>
@@ -635,15 +703,14 @@ const Profile = () => {
                             );
                           })()}
                         </View>
-                        <Text className="text-sm text-green-600 font-medium">
-                          {progress.xpNeededForNextRank.toLocaleString()} XP
-                          needed
+                        <Text style={{ fontSize: 13, color: '#516D58', fontWeight: '600' }}>
+                          {progress.xpNeededForNextRank.toLocaleString()} XP needed
                         </Text>
                       </View>
                     )}
                   {!progress.nextRank && (
-                    <View className="mt-3 pt-3 border-t border-gray-200">
-                      <Text className="text-sm text-gray-600 font-medium">
+                    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                      <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>
                         🏆 Maximum rank achieved!
                       </Text>
                     </View>
@@ -655,14 +722,29 @@ const Profile = () => {
         </View>
 
         {/* Favorites */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <TouchableOpacity
             onPress={() => setShowFavorites(!showFavorites)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="heart" size={20} color="#DB1630" />
-              <Text className="text-gray-900 font-semibold ml-2">Favorites ({favorites.length})</Text>
+              <Text style={{ color: '#111827', fontWeight: '600', marginLeft: 8, fontSize: 16 }}>
+                Favorites ({favorites.length})
+              </Text>
             </View>
             <Ionicons
               name={showFavorites ? "chevron-up" : "chevron-down"}
@@ -672,41 +754,58 @@ const Profile = () => {
           </TouchableOpacity>
 
           {showFavorites && (
-            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <View style={{
+              marginTop: 12,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
               {loadingFavorites ? (
-                <View className="py-8 items-center">
-                  <ActivityIndicator size="small" color="#10b981" />
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#516D58" />
                 </View>
               ) : favoriteTrails.length === 0 ? (
-                <View className="p-4">
-                  <Text className="text-gray-500 text-center">
+                <View style={{ padding: 16 }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No favorite trails yet.
                   </Text>
                 </View>
               ) : (
-                favoriteTrails.map((trail) => (
+                favoriteTrails.map((trail, index) => (
                   <View
                     key={trail.id}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 flex-row items-center"
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: index < favoriteTrails.length - 1 ? 1 : 0,
+                      borderBottomColor: '#F3F4F6',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
                   >
                     <TouchableOpacity
                       onPress={() => router.push(`/trail/${trail.id}` as any)}
-                      className="flex-1"
+                      style={{ flex: 1 }}
                       activeOpacity={0.7}
                     >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                          <Text className="text-gray-900 font-medium">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#111827', fontWeight: '600', fontSize: 15 }}>
                             {trail.name}
                           </Text>
                           {trail.location && (
-                            <View className="flex-row items-center mt-1">
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                               <Ionicons
                                 name="location"
                                 size={12}
                                 color="#6B7280"
                               />
-                              <Text className="text-gray-600 text-xs ml-1">
+                              <Text style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>
                                 {trail.location}
                               </Text>
                             </View>
@@ -719,13 +818,13 @@ const Profile = () => {
                         />
                       </View>
                     </TouchableOpacity>
-                    <View className="ml-3">
+                    <View style={{ marginLeft: 12 }}>
                       <TouchableOpacity
                         onPress={() => {
                           handleRemoveFromList(trail.id, "favorites");
                         }}
                         disabled={removingTrail === trail.id}
-                        className="p-2"
+                        style={{ padding: 8 }}
                         activeOpacity={0.7}
                         hitSlop={{ top: 15, right: 15, bottom: 15, left: 15 }}
                       >
@@ -748,14 +847,27 @@ const Profile = () => {
         </View>
 
         {/* Wishlist */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <TouchableOpacity
             onPress={() => setShowWishlist(!showWishlist)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="bookmark" size={20} color="#3B82F6" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '600', marginLeft: 8, fontSize: 16 }}>
                 Wishlist ({wishlist.length})
               </Text>
             </View>
@@ -767,41 +879,58 @@ const Profile = () => {
           </TouchableOpacity>
 
           {showWishlist && (
-            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <View style={{
+              marginTop: 12,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
               {loadingWishlist ? (
-                <View className="py-8 items-center">
-                  <ActivityIndicator size="small" color="#10b981" />
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#516D58" />
                 </View>
               ) : wishlistTrails.length === 0 ? (
-                <View className="p-4">
-                  <Text className="text-gray-500 text-center">
+                <View style={{ padding: 16 }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No trails in wishlist yet.
                   </Text>
                 </View>
               ) : (
-                wishlistTrails.map((trail) => (
+                wishlistTrails.map((trail, index) => (
                   <View
                     key={trail.id}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 flex-row items-center"
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: index < wishlistTrails.length - 1 ? 1 : 0,
+                      borderBottomColor: '#F3F4F6',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
                   >
                     <TouchableOpacity
                       onPress={() => router.push(`/trail/${trail.id}` as any)}
-                      className="flex-1"
+                      style={{ flex: 1 }}
                       activeOpacity={0.7}
                     >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                          <Text className="text-gray-900 font-medium">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#111827', fontWeight: '600', fontSize: 15 }}>
                             {trail.name}
                           </Text>
                           {trail.location && (
-                            <View className="flex-row items-center mt-1">
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                               <Ionicons
                                 name="location"
                                 size={12}
                                 color="#6B7280"
                               />
-                              <Text className="text-gray-600 text-xs ml-1">
+                              <Text style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>
                                 {trail.location}
                               </Text>
                             </View>
@@ -814,13 +943,13 @@ const Profile = () => {
                         />
                       </View>
                     </TouchableOpacity>
-                    <View className="ml-3">
+                    <View style={{ marginLeft: 12 }}>
                       <TouchableOpacity
                         onPress={() => {
                           handleRemoveFromList(trail.id, "wishlist");
                         }}
                         disabled={removingTrail === trail.id}
-                        className="p-2"
+                        style={{ padding: 8 }}
                         activeOpacity={0.7}
                         hitSlop={{ top: 15, right: 15, bottom: 15, left: 15 }}
                       >
@@ -843,14 +972,27 @@ const Profile = () => {
         </View>
 
         {/* Completed Trails */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <TouchableOpacity
             onPress={() => setShowCompleted(!showCompleted)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '600', marginLeft: 8, fontSize: 16 }}>
                 Completed Trails ({completed.length})
               </Text>
             </View>
@@ -862,41 +1004,58 @@ const Profile = () => {
           </TouchableOpacity>
 
           {showCompleted && (
-            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <View style={{
+              marginTop: 12,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
               {loadingCompleted ? (
-                <View className="py-8 items-center">
-                  <ActivityIndicator size="small" color="#10b981" />
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#516D58" />
                 </View>
               ) : completedTrails.length === 0 ? (
-                <View className="p-4">
-                  <Text className="text-gray-500 text-center">
+                <View style={{ padding: 16 }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No completed trails yet.
                   </Text>
                 </View>
               ) : (
-                completedTrails.map((trail) => (
+                completedTrails.map((trail, index) => (
                   <View
                     key={trail.id}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 flex-row items-center"
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: index < completedTrails.length - 1 ? 1 : 0,
+                      borderBottomColor: '#F3F4F6',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                    }}
                   >
                     <TouchableOpacity
                       onPress={() => router.push(`/trail/${trail.id}` as any)}
-                      className="flex-1"
+                      style={{ flex: 1 }}
                       activeOpacity={0.7}
                     >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                          <Text className="text-gray-900 font-medium">
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#111827', fontWeight: '600', fontSize: 15 }}>
                             {trail.name}
                           </Text>
                           {trail.location && (
-                            <View className="flex-row items-center mt-1">
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                               <Ionicons
                                 name="location"
                                 size={12}
                                 color="#6B7280"
                               />
-                              <Text className="text-gray-600 text-xs ml-1">
+                              <Text style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>
                                 {trail.location}
                               </Text>
                             </View>
@@ -909,13 +1068,13 @@ const Profile = () => {
                         />
                       </View>
                     </TouchableOpacity>
-                    <View className="ml-3">
+                    <View style={{ marginLeft: 12 }}>
                       <TouchableOpacity
                         onPress={() => {
                           handleRemoveFromList(trail.id, "completed");
                         }}
                         disabled={removingTrail === trail.id}
-                        className="p-2"
+                        style={{ padding: 8 }}
                         activeOpacity={0.7}
                         hitSlop={{ top: 15, right: 15, bottom: 15, left: 15 }}
                       >
@@ -939,14 +1098,27 @@ const Profile = () => {
 
 
         {/* Posts */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           <TouchableOpacity
             onPress={() => setShowPosts(!showPosts)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="document-text" size={20} color="#10b981" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '600', marginLeft: 8, fontSize: 16 }}>
                 My Posts ({userPosts.length})
               </Text>
             </View>
@@ -958,22 +1130,43 @@ const Profile = () => {
           </TouchableOpacity>
 
           {showPosts && (
-            <View className="mt-2">
+            <View style={{ marginTop: 12 }}>
               {loadingPosts ? (
-                <View className="py-8 items-center bg-gray-50 rounded-lg">
-                  <ActivityIndicator size="small" color="#10b981" />
-                  <Text className="text-gray-500 text-sm mt-2">
+                <View style={{
+                  paddingVertical: 32,
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 8,
+                  elevation: 2,
+                }}>
+                  <ActivityIndicator size="small" color="#516D58" />
+                  <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 8 }}>
                     Loading posts...
                   </Text>
                 </View>
               ) : userPosts.length === 0 ? (
-                <View className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <Text className="text-gray-500 text-center">
+                <View style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 8,
+                  elevation: 2,
+                }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No posts yet. Create your first post!
                   </Text>
                 </View>
               ) : (
-                <View>
+                <View style={{ gap: 16 }}>
                   {userPosts
                     .sort(
                       (a, b) =>
@@ -981,18 +1174,19 @@ const Profile = () => {
                         new Date(a.createdAt).getTime()
                     )
                     .map((post) => (
-                      <PostCard 
-                        key={post.id} 
-                        post={post} 
-                        onUpdate={(updatedPost) => {
-                          // Handle post deletion
-                          if (updatedPost && updatedPost.id === 'DELETED') {
-                            setUserPosts(prev => prev.filter(p => p.id !== post.id));
-                          } else if (updatedPost) {
-                            setUserPosts(prev => prev.map(p => p.id === post.id ? updatedPost : p));
-                          }
-                        }}
-                      />
+                      <View key={post.id}>
+                        <PostCard 
+                          post={post} 
+                          onUpdate={(updatedPost) => {
+                            // Handle post deletion
+                            if (updatedPost && updatedPost.id === 'DELETED') {
+                              setUserPosts(prev => prev.filter(p => p.id !== post.id));
+                            } else if (updatedPost) {
+                              setUserPosts(prev => prev.map(p => p.id === post.id ? updatedPost : p));
+                            }
+                          }}
+                        />
+                      </View>
                     ))}
                 </View>
               )}
@@ -1002,10 +1196,25 @@ const Profile = () => {
 
         {/* Sign Out */}
         <TouchableOpacity
-          className="bg-red-500 rounded-lg p-4 items-center mt-4"
+          style={{
+            backgroundColor: '#EF4444',
+            borderRadius: 12,
+            paddingVertical: 16,
+            alignItems: 'center',
+            marginTop: 8,
+            marginBottom: 24,
+            shadowColor: '#EF4444',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+            elevation: 6,
+          }}
           onPress={handleSignOut}
+          activeOpacity={0.8}
         >
-          <Text className="text-white font-semibold">Sign Out</Text>
+          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>
+            Sign Out
+          </Text>
         </TouchableOpacity>
 
         {/* Following List Modal */}
