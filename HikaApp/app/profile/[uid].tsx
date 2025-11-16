@@ -322,28 +322,85 @@ const RemoteProfile = () => {
   }
 
   return (
-    <ScrollView className="flex-1 bg-white">
+    <ScrollView className="flex-1 bg-hika-darkgreen">
       <View className="px-4 py-6">
-        <View className="mb-4">
-          <TouchableOpacity onPress={() => router.back()} className="px-2 py-1">
-            <Text className="text-green-600">Back</Text>
-          </TouchableOpacity>
+        {/* Back Button */}
+        <TouchableOpacity
+          className="mb-4 flex-row items-center"
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          <Text className="text-white ml-2 font-semibold">Back</Text>
+        </TouchableOpacity>
+
+        {/* Profile Header */}
+        <View className="items-center mb-6">
+          {profile.profilePictureUrl ? (
+            <Image
+              source={{ uri: profile.profilePictureUrl }}
+              style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#E5E7EB' }}
+              contentFit="cover"
+            />
+          ) : (
+            <View className="w-24 h-24 bg-white rounded-full items-center justify-center mb-4">
+              <Text className="text-3xl font-bold text-hika-green">
+                {profile.displayName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          
+          {/* Changed from text-black to text-white */}
+          <Text className="text-2xl font-bold text-white mt-4">{profile.displayName}</Text>
+          
+          {profile.bio && (
+            <Text className="text-gray-300 mt-2 text-center">{profile.bio}</Text>
+          )}
+
+          {/* Follow Button - Fixed syntax */}
+          {user && uid !== user.uid && (
+            <TouchableOpacity
+              style={{
+                marginTop: 16,
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                borderRadius: 8,
+                backgroundColor: following ? '#FFFFFF' : '#17AE3C',
+                borderWidth: 2,
+                borderColor: '#FFFFFF',
+              }}
+              onPress={handleFollowToggle}
+              disabled={processingFollow}
+            >
+              {processingFollow ? (
+                <ActivityIndicator size="small" color={following ? '#516D58' : '#FFFFFF'} />
+              ) : (
+                <Text 
+                  style={{
+                    fontWeight: '600',
+                    color: following ? '#516D58' : '#FFFFFF',
+                  }}
+                >
+                  {following ? 'Following' : 'Follow'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Stats */}
         <View className="bg-gray-50 rounded-lg p-4 mb-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">Stats</Text>
+          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Stats</Text>
           <View className="flex-row justify-between">
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">{((profile?.totalDistance || 0) / 1000).toFixed(1)} km</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">{((profile?.totalDistance || 0) / 1000).toFixed(1)} km</Text>
               <Text className="text-gray-600 text-sm">Total Distance</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">{profile?.totalHikes || 0}</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">{profile?.totalHikes || 0}</Text>
               <Text className="text-gray-600 text-sm">Total Hikes</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">{Math.floor((profile?.totalTime || 0) / 3600)}h</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">{Math.floor((profile?.totalTime || 0) / 3600)}h</Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
             </View>
           </View>
@@ -428,50 +485,7 @@ const RemoteProfile = () => {
             })()}
           </View>
         )}
-        <View className="items-center mb-4">
-          {profile.profilePictureUrl ? (
-            <Image
-              source={{ uri: profile.profilePictureUrl }}
-              style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#E5E7EB' }}
-              contentFit="cover"
-              className="mb-3"
-            />
-          ) : (
-            <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center mb-3">
-              <Text className="text-3xl font-bold text-white">
-                {profile.displayName?.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-          <Text className="text-2xl font-bold text-gray-900">
-            {profile.displayName}
-          </Text>
-          {(profile as any).username ? (
-            <Text className="text-gray-500">@{(profile as any).username}</Text>
-          ) : null}
-          {profile.bio ? (
-            <Text className="text-gray-600 mt-2 text-center">
-              {profile.bio}
-            </Text>
-          ) : null}
-        </View>
-
-        {isOwn && (
-          <View className="mb-4">
-            <PostComposer />
-          </View>
-        )}
-
-        {!isOwn && (
-          <View className="items-center mb-4">
-            <Button
-              title={following ? "Following" : "Follow"}
-              onPress={handleFollowToggle}
-              loading={processingFollow}
-              variant={following ? "outline" : "primary"}
-            />
-          </View>
-        )}
+        
 
         {/* Favorites */}
         <View className="mb-6">
@@ -497,7 +511,7 @@ const RemoteProfile = () => {
                   <ActivityIndicator size="small" color="#10b981" />
                 </View>
               ) : favoriteTrails.length === 0 ? (
-                <View className="p-4">
+                <View className="p-4 bg-white">
                   <Text className="text-gray-500 text-center">No favorite trails yet.</Text>
                 </View>
               ) : (
@@ -505,7 +519,7 @@ const RemoteProfile = () => {
                   <TouchableOpacity
                     key={trail.id}
                     onPress={() => router.push(`/trail/${trail.id}` as any)}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white"
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
@@ -550,7 +564,7 @@ const RemoteProfile = () => {
                   <ActivityIndicator size="small" color="#10b981" />
                 </View>
               ) : wishlistTrails.length === 0 ? (
-                <View className="p-4">
+                <View className="p-4 bg-white">
                   <Text className="text-gray-500 text-center">No trails in wishlist yet.</Text>
                 </View>
               ) : (
@@ -558,7 +572,7 @@ const RemoteProfile = () => {
                   <TouchableOpacity
                     key={trail.id}
                     onPress={() => router.push(`/trail/${trail.id}` as any)}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white"
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
@@ -603,7 +617,7 @@ const RemoteProfile = () => {
                   <ActivityIndicator size="small" color="#10b981" />
                 </View>
               ) : completedTrails.length === 0 ? (
-                <View className="p-4">
+                <View className="p-4 bg-white">
                   <Text className="text-gray-500 text-center">No completed trails yet.</Text>
                 </View>
               ) : (
@@ -611,7 +625,7 @@ const RemoteProfile = () => {
                   <TouchableOpacity
                     key={trail.id}
                     onPress={() => router.push(`/trail/${trail.id}` as any)}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white"
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
@@ -634,7 +648,7 @@ const RemoteProfile = () => {
 
         {/* Posts */}
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-2">
+          <Text className="text-lg font-semibold text-white mb-2">
             Posts
           </Text>
           {loadingPosts ? (
