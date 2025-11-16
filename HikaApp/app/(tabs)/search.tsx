@@ -161,18 +161,19 @@ const Search = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-hika-darkgreen">
       <ScrollView className="flex-1">
         <View className="px-4 py-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-4">Search Trails</Text>
+          <Text className="text-2xl font-bold text-white mb-4">Search Trails</Text>
           
           {/* Search Input */}
           <View className="mb-4">
-            <View className="flex-row items-center border border-gray-300 rounded-lg px-4 py-3 bg-white">
+            <View className="flex-row items-center border border-white rounded-lg px-4 py-3 bg-white">
               <Ionicons name="search-outline" size={20} color="#6B7280" />
               <TextInput
-                className="flex-1 ml-2 text-base"
+                className="flex-1 ml-2 text-base text-black"
                 placeholder="Search by trail name..."
+                placeholderTextColor="black"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCapitalize="none"
@@ -187,7 +188,7 @@ const Search = () => {
 
           {/* Location Filter - State Picker */}
           <View className="mb-4">
-            <Text className="text-gray-700 mb-2 font-medium">State</Text>
+            <Text className="text-white mb-2 font-medium">State</Text>
             <TouchableOpacity
               onPress={() => setShowStatePicker(true)}
               className="border border-gray-300 rounded-lg px-4 py-3 flex-row items-center justify-between bg-white"
@@ -203,7 +204,7 @@ const Search = () => {
                 className="mt-2 flex-row items-center"
               >
                 <Ionicons name="close-circle" size={16} color="#6B7280" />
-                <Text className="text-sm text-gray-600 ml-1">Clear state filter</Text>
+                <Text className="text-sm text-gray-800 ml-1">Clear state filter</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -278,22 +279,22 @@ const Search = () => {
 
           {/* Difficulty Filter */}
           <View className="mb-6">
-            <Text className="text-gray-700 mb-2 font-medium">Difficulty</Text>
+            <Text className="text-white mb-2 font-bold">Difficulty</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
-              <View className="flex-row space-x-2">
+              <View className="flex-row">
                 {['', 'Easy', 'Moderate', 'Hard', 'Expert'].map((diff, index) => (
                   <TouchableOpacity
                     key={diff || `all-${index}`}
                     onPress={() => setDifficultyFilter(diff === difficultyFilter ? '' : diff)}
                     className={`px-4 py-2 rounded-full border ${
                       difficultyFilter === diff
-                        ? 'bg-green-500 border-green-500'
-                        : 'bg-white border-gray-300'
-                    }`}
+                        ? 'bg-white border-white'
+                        : 'bg-hika-darkgreen border-white'
+                    } ${index > 0 ? 'ml-2' : ''}`}
                   >
                     <Text
                       className={`font-medium ${
-                        difficultyFilter === diff ? 'text-white' : 'text-gray-700'
+                        difficultyFilter === diff ? 'text-hika-darkgreen' : 'text-white'
                       }`}
                     >
                       {diff || 'All'}
@@ -306,17 +307,17 @@ const Search = () => {
 
           {/* OpenStreetMap Toggle */}
           <View className="mb-6">
-            <View className="flex-row items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <View className="flex-row items-center justify-between bg-white p-4 rounded-lg border border-white">
               <View className="flex-1 mr-4">
-                <Text className="text-gray-700 font-medium mb-1">Search OpenStreetMap</Text>
-                <Text className="text-sm text-gray-500">
+                <Text className="text-black font-medium mb-1">Search OpenStreetMap</Text>
+                <Text className="text-sm text-black">
                   Automatically fetch and save trails from OpenStreetMap when searching by name or location
                 </Text>
               </View>
               <Switch
                 value={useOpenStreetMap}
                 onValueChange={setUseOpenStreetMap}
-                trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                trackColor={{ false: '#DB1631', true: '#92C59F' }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -327,18 +328,18 @@ const Search = () => {
             onPress={performSearch}
             disabled={isSearching}
             className={`py-4 rounded-lg items-center mb-6 ${
-              isSearching ? 'bg-gray-400' : 'bg-green-600'
+              isSearching ? 'bg-gray-400' : 'bg-white'
             }`}
           >
             {isSearching ? (
               <View className="flex-row items-center">
-                <ActivityIndicator size="small" color="#FFFFFF" />
-                <Text className="text-white text-lg font-semibold ml-2">Searching...</Text>
+                <ActivityIndicator size="small" color="#516D58" />
+                <Text className="text-hika-darkgreen text-lg font-semibold ml-2">Searching...</Text>
               </View>
             ) : (
               <View className="flex-row items-center">
-                <Ionicons name="search" size={20} color="#FFFFFF" />
-                <Text className="text-white text-lg font-semibold ml-2">Search Trails</Text>
+                <Ionicons name="search" size={20} color="#516D58" />
+                <Text className="text-hika-darkgreen text-lg font-semibold ml-2">Search Trails</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -355,24 +356,14 @@ const Search = () => {
             </View>
           )}
 
-          {/* Search Results */}
-          {isSearching && (
-            <View className="items-center py-8">
-              <ActivityIndicator size="large" color="#10b981" />
-              <Text className="mt-4 text-gray-600">Searching trails...</Text>
-              {isLoadingOverpass && (
-                <Text className="mt-2 text-sm text-gray-500">Fetching from OpenStreetMap...</Text>
-              )}
-            </View>
-          )}
-
+          {/* Search Results - No trails found */}
           {!isSearching && hasSearched && trails.length === 0 && !isLoadingOverpass && (
-            <View className="items-center py-8">
+            <View className="items-center py-8 bg-white rounded-lg">
               <Ionicons name="trail-sign-outline" size={64} color="#D1D5DB" />
-              <Text className="mt-4 text-gray-600 text-center">
+              <Text className="mt-4 text-gray-600 text-center font-semibold">
                 No trails found.
               </Text>
-              <Text className="mt-2 text-sm text-gray-500 text-center px-4 mb-4">
+              <Text className="mt-2 text-sm text-gray-500 text-center px-4">
                 {locationFilter.trim() 
                   ? 'No trails found matching your search. Try a different search term or state.'
                   : searchQuery.trim()
@@ -382,70 +373,18 @@ const Search = () => {
             </View>
           )}
 
-          {/* Overpass API Results (if any) */}
-          {overpassTrails.length > 0 && (
-            <View className="mb-4">
-              <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-gray-600">
-                  Found {overpassTrails.length} trail{overpassTrails.length !== 1 ? 's' : ''} from OpenStreetMap
-                </Text>
-              </View>
-              
-              {overpassTrails.map((trail, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => {
-                    Alert.alert(
-                      'Save Trail?',
-                      `Would you like to save "${trail.name || 'this trail'}" to the database?`,
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Save',
-                          onPress: async () => {
-                            const trailId = await saveOverpassTrailToFirestore(trail);
-                            if (trailId) {
-                              Alert.alert('Success', 'Trail saved to database!');
-                              performSearch(); // Refresh search
-                            }
-                          },
-                        },
-                      ]
-                    );
-                  }}
-                  className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3"
-                >
-                  <View className="flex-row">
-                    <View className="w-20 h-20 bg-blue-100 rounded-lg items-center justify-center mr-4">
-                      <Ionicons name="map-outline" size={32} color="#3B82F6" />
-                    </View>
-                    <View className="flex-1">
-                      <View className="flex-row items-center mb-1">
-                        <Text className="text-lg font-semibold text-gray-900 flex-1" numberOfLines={1}>
-                          {trail.name || 'Unnamed Trail'}
-                        </Text>
-                        <View className="bg-blue-500 px-2 py-1 rounded">
-                          <Text className="text-xs text-white font-medium">OSM</Text>
-                        </View>
-                      </View>
-                      <View className="flex-row items-center mb-2">
-                        <Ionicons name="location-outline" size={14} color="#6B7280" />
-                        <Text className="text-sm text-gray-600 ml-1" numberOfLines={1}>
-                          {trail.location || 'Unknown Location'}
-                        </Text>
-                      </View>
-                      {(trail.distance !== undefined && trail.distance !== null) && (
-                        <Text className="text-xs text-gray-500">
-                          Tap to save to database
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+          {/* Loading state */}
+          {isSearching && (
+            <View className="items-center py-8">
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text className="mt-4 text-white">Searching trails...</Text>
+              {isLoadingOverpass && (
+                <Text className="mt-2 text-sm text-gray-200">Fetching from OpenStreetMap...</Text>
+              )}
             </View>
           )}
 
+          {/* Trail Results - existing trail cards remain the same */}
           {!isSearching && trails.length > 0 && (
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-3">
@@ -565,14 +504,15 @@ const Search = () => {
             </View>
           )}
 
+          {/* Initial state */}
           {!hasSearched && !isSearching && (
             <View className="items-center py-8">
-              <Ionicons name="search-outline" size={64} color="#D1D5DB" />
-              <Text className="mt-4 text-gray-600 text-center">
+              <Ionicons name="search-outline" size={64} color="#FFFFFF" />
+              <Text className="mt-4 text-white text-center font-semibold">
                 Start typing to search for trails
               </Text>
-              <Text className="mt-2 text-sm text-gray-500 text-center px-4">
-                Enter a trail name or select a state to search. You can also filter by difficulty after searching.
+              <Text className="mt-2 text-sm text-white text-center px-4">
+                Enter a trail name or location to search. You can also filter by difficulty after searching.
               </Text>
             </View>
           )}

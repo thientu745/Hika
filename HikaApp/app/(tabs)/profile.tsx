@@ -292,7 +292,7 @@ const Profile = () => {
   const xp = userProfile?.xp || 0;
 
   return (
-    <ScrollView className="flex-1 bg-white">
+    <ScrollView className="flex-1 bg-hika-darkgreen">
       <View className="px-4 py-6">
         {/* Profile Header */}
         <View className="items-center mb-6">
@@ -311,14 +311,14 @@ const Profile = () => {
                 cachePolicy="memory-disk"
               />
             ) : (
-              <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center">
-                <Text className="text-3xl font-bold text-white">
+              <View className="w-24 h-24 bg-white rounded-full items-center justify-center">
+                <Text className="text-3xl font-bold text-hika-darkgreen">
                   {displayName.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
             {/* Upload overlay button */}
-            <View className="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full items-center justify-center border-2 border-white">
+            <View className="absolute bottom-0 right-0 w-8 h-8 bg-hika-darkgreen rounded-full items-center justify-center border-2 border-white">
               {uploading ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
@@ -326,7 +326,7 @@ const Profile = () => {
               )}
             </View>
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">{displayName}</Text>
+          <Text className="text-2xl font-bold text-white">{displayName}</Text>
           {!userProfile && (
             <Text className="text-gray-500 text-sm mt-2">Loading profile data...</Text>
           )}
@@ -351,20 +351,20 @@ const Profile = () => {
 
         {/* Stats */}
         <View className="bg-gray-50 rounded-lg p-4 mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">Stats</Text>
+          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Stats</Text>
           <View className="flex-row justify-between">
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">
+              <Text className="text-2xl font-bold text-hika-darkgreen">
                 {(totalDistance / 1000).toFixed(1)} km
               </Text>
               <Text className="text-gray-600 text-sm">Total Distance</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">{totalHikes}</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">{totalHikes}</Text>
               <Text className="text-gray-600 text-sm">Total Hikes</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">
+              <Text className="text-2xl font-bold text-hika-darkgreen">
                 {Math.floor(totalTime / 3600)}h
               </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
@@ -374,7 +374,7 @@ const Profile = () => {
 
         {/* Game Features */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">Rank & Progress</Text>
+          <Text className="text-lg font-semibold text-white mb-3">Rank & Progress</Text>
           <View className="bg-gray-50 rounded-lg p-4">
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center">
@@ -458,7 +458,7 @@ const Profile = () => {
             className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
           >
             <View className="flex-row items-center">
-              <Ionicons name="heart" size={20} color="#EF4444" />
+              <Ionicons name="heart" size={20} color="#DB1630" />
               <Text className="text-gray-900 font-semibold ml-2">Favorites ({favorites.length})</Text>
             </View>
             <Ionicons 
@@ -612,7 +612,7 @@ const Profile = () => {
 
         {/* Posts */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">My Posts</Text>
+          <Text className="text-lg font-semibold text-white mb-3">My Posts</Text>
           {loadingPosts ? (
             <View className="py-8 items-center">
               <ActivityIndicator size="small" color="#10b981" />

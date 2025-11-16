@@ -30,7 +30,7 @@ export const Button: React.FC<ButtonProps> = ({
   const baseClasses = 'rounded-lg items-center justify-center';
   
   const variantClasses = {
-    primary: 'bg-green-500',
+    primary: 'bg-hika-darkgreen',
     secondary: 'bg-gray-100 border border-gray-300',
     outline: 'bg-transparent border-2 border-green-500',
   };

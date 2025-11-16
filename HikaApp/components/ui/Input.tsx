@@ -19,14 +19,14 @@ export const Input: React.FC<InputProps> = ({
   ...textInputProps
 }) => {
   return (
-    <View className={`mb-4 ${containerClassName}`}>
+    <View className={` ${containerClassName}`}>
       {label && (
-        <Text className={`text-gray-700 mb-2 font-medium ${labelClassName}`}>
+        <Text className={`text-gray-700 font-medium ${labelClassName}`}>
           {label}
         </Text>
       )}
       <TextInput
-        className={`border rounded-lg px-4 py-3 text-base ${
+        className={`border rounded-lg px-4 py-2 text-base ${
           error ? 'border-red-500' : 'border-gray-300'
         } ${inputClassName}`}
         placeholderTextColor="#9CA3AF"

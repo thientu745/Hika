@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, TextInput } from "react-native";
 import React, { useState, useEffect, useRef } from "react";
 import { Redirect, useRouter, Link } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
@@ -113,22 +113,20 @@ const Home = () => {
     return <LoadingScreen message="Loading your feed..." variant="minimal" />;
   }
 
-
-  // helper navigation (use inline router.push in handlers)
-
   return (
     <ScrollView
-      className="flex-1 bg-white"
+      className="flex-1 bg-hika-darkgreen"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View className="px-4 py-6">
         {/* People search */}
         <View className="mb-4">
-          <Input
+          <TextInput
+            className="rounded-lg px-4 py-3 text-hika-darkgreen bg-transparent bg-white border border-white"
             placeholder="Search people by name or username"
+            placeholderTextColor="#516d58"
             value={searchQuery}
             onChangeText={setSearchQuery}
-            containerClassName="mb-2"
           />
 
           <View className="mt-4">
@@ -141,17 +139,17 @@ const Home = () => {
                   {u.profilePictureUrl ? (
                     <Image
                       source={{ uri: u.profilePictureUrl }}
-                      style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#E5E7EB' }}
+                      style={{ width: 42, height: 42, borderRadius: 24, borderWidth: 2, borderColor: '#E5E7EB' }}
                       contentFit="cover"
                       className="mr-4"
                     />
                   ) : (
-                    <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center mr-4">
+                    <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center mr-01">
                       <Text className="text-white font-bold">{u.displayName?.charAt(0).toUpperCase()}</Text>
                     </View>
                   )}
                   <View className="flex-1">
-                    <Text className="text-gray-900 font-medium">{u.displayName}</Text>
+                    <Text className="text-white font-medium ml-3">{u.displayName}</Text>
                     {(u as any).username ? (
                       <Text className="text-gray-500 text-sm">@{(u as any).username}</Text>
                     ) : null}
@@ -165,7 +163,7 @@ const Home = () => {
         {/* Composer removed from Home - posts are created on your profile page only */}
 
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-2">Feed</Text>
+          <Text className="text-lg font-semibold text-white mb-2">Feed</Text>
           {loadingFeed ? (
             <Text className="text-gray-500">Loading feed...</Text>
           ) : feedPosts.length === 0 ? (
