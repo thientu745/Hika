@@ -7,7 +7,10 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  Platform,
+  StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserProfile } from '../../services/database';
@@ -66,21 +69,33 @@ export const FollowersList: React.FC<FollowersListProps> = ({
   return (
     <Modal
       visible={visible}
+      transparent={true}
       animationType="slide"
-      presentationStyle="pageSheet"
       onRequestClose={onClose}
+      statusBarTranslucent={Platform.OS !== 'web'}
     >
-      <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
-          <Text className="text-xl font-bold text-gray-900">Followers</Text>
-          <TouchableOpacity onPress={onClose} className="p-2">
-            <Ionicons name="close" size={24} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={styles.modalContentWrapper}>
+          <View style={styles.modalContent}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderText}>Followers</Text>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
 
-        {/* Content */}
-        <ScrollView className="flex-1">
+            {/* Content */}
+            <ScrollView 
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator={true}
+            >
           {loading ? (
             <View className="py-8 items-center">
               <ActivityIndicator size="small" color="#10b981" />
@@ -150,11 +165,66 @@ export const FollowersList: React.FC<FollowersListProps> = ({
               ))}
             </View>
           )}
-        </ScrollView>
+            </ScrollView>
+          </View>
+          <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom} />
+        </View>
       </View>
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '70%' : '75%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 500 : 400,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
+  },
+});
 
 export default FollowersList;
 

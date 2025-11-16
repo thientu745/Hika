@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Modal,
+  Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
-import { followUser, unfollowUser, getTrail } from "../../services/database";
+import { followUser, unfollowUser, getTrail, getUserProfiles } from "../../services/database";
 import { db } from "../../firebaseConfig";
 import {
   doc,
@@ -27,6 +30,7 @@ import { FollowingList } from "../../components/ui/FollowingList";
 import { FollowersList } from "../../components/ui/FollowersList";
 import { Image } from "expo-image";
 import { getRankBorderStyle } from "../../utils/rankStyles";
+import { PostComposer } from "../../components/ui/PostComposer";
 import type { Post, UserProfile, Trail, UserRank } from "../../types";
 
 // Rank thresholds
@@ -143,6 +147,8 @@ const RemoteProfile = () => {
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
+  
+  // Social list modals (using new components)
   const [showFollowingList, setShowFollowingList] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
 
@@ -313,7 +319,6 @@ const RemoteProfile = () => {
 
     loadCompletedTrails();
   }, [showCompleted, profile?.completed]);
-
   const isOwn = user?.uid === uid;
 
   // Local following state for optimistic UI updates
@@ -654,6 +659,12 @@ const RemoteProfile = () => {
           </View>
         )}
 
+        {isOwn && (
+          <View className="mb-4">
+            <PostComposer />
+          </View>
+        )}
+
         {/* Favorites */}
         <View className="mb-6">
           <TouchableOpacity
@@ -861,6 +872,7 @@ const RemoteProfile = () => {
           )}
         </View>
 
+
         {/* Posts */}
         <View className="mb-4">
           <Text className="text-lg font-semibold text-white mb-2">Posts</Text>
@@ -934,6 +946,55 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 600 : 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
   },
 });
 

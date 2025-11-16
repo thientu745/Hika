@@ -6,7 +6,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   Alert,
+  Modal,
+  Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState, useEffect } from "react";
 import { Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,12 +23,13 @@ import { FollowersList } from "../../components/ui/FollowersList";
 import {
   getUserPosts,
   getTrail,
+  getUserProfiles,
   removeTrailFromList,
   updateUserProfile,
 } from "../../services/database";
 import { pickImage, uploadProfilePicture } from "../../services/storage";
 import { getRankBorderStyle } from "../../utils/rankStyles";
-import type { Post, Trail, UserRank } from "../../types";
+import type { Post, Trail, UserRank, UserProfile } from "../../types";
 
 // Rank thresholds
 const RANK_THRESHOLDS: Record<
@@ -128,7 +132,7 @@ const Profile = () => {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
-
+  
   // Trail lists
   const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
   const [wishlistTrails, setWishlistTrails] = useState<Trail[]>([]);
@@ -138,6 +142,8 @@ const Profile = () => {
   const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [removingTrail, setRemovingTrail] = useState<string | null>(null);
+  
+  // Social list modals (using new components)
   const [showFollowingList, setShowFollowingList] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
 
@@ -150,6 +156,8 @@ const Profile = () => {
   const favorites = userProfile?.favorites || [];
   const completed = userProfile?.completed || [];
   const wishlist = userProfile?.wishlist || [];
+  const followers = userProfile?.followers || [];
+  const following = userProfile?.following || [];
 
   // Load user posts (must be before early returns)
   useEffect(() => {
@@ -490,6 +498,24 @@ const Profile = () => {
             </View>
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-white">{displayName}</Text>
+          
+          {/* Followers & Following Stats (Instagram style) */}
+          <View className="flex-row items-center justify-center mt-4 mb-2">
+            <TouchableOpacity
+              onPress={() => setShowFollowersList(true)}
+              className="items-center mx-4"
+            >
+              <Text className="text-xl font-bold text-white">{followers.length}</Text>
+              <Text className="text-sm text-gray-300 mt-1">Followers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowingList(true)}
+              className="items-center mx-4"
+            >
+              <Text className="text-xl font-bold text-white">{following.length}</Text>
+              <Text className="text-sm text-gray-300 mt-1">Following</Text>
+            </TouchableOpacity>
+          </View>
           {!userProfile && (
             <Text className="text-gray-500 text-sm mt-2">
               Loading profile data...
@@ -952,6 +978,7 @@ const Profile = () => {
           )}
         </View>
 
+
         {/* Posts */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-white mb-3">My Posts</Text>
@@ -1042,6 +1069,55 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 600 : 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
   },
 });
 
