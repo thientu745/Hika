@@ -33,6 +33,10 @@ export default function RootLayout() {
           options={{ headerShown: false }} 
         />
         <Stack.Screen 
+          name="create-post-from-tracking" 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
           name="profile/[uid]" 
           options={{ headerShown: false }} 
         />

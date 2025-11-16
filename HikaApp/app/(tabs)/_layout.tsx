@@ -1,27 +1,32 @@
 import { StyleSheet, Text, View, Platform } from 'react-native'
 import { Tabs } from 'expo-router'
-import React from 'react'
+import React, { useState } from 'react'
 import { Ionicons } from "@expo/vector-icons"
+import { AddHikeModal } from '../../components/ui/AddHikeModal'
+import { CustomTabBar } from '../../components/ui/CustomTabBar'
 
 const TabsLayout = () => {
+  const [showAddHikeModal, setShowAddHikeModal] = useState(false);
+
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: "#92C59F", // hika-green
-        tabBarInactiveTintColor: "#516D58", // hika-darkgreen
-        headerShown: false,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        tabBarStyle: {
-          height: Platform.OS === 'ios' ? 85 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 8,
-          paddingTop: 8,
-          backgroundColor: '#ffffff',
-        },
-      }}
-    >
+    <>
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: "#92C59F", // hika-green
+          tabBarInactiveTintColor: "#516D58", // hika-darkgreen
+          headerShown: false,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+          },
+          tabBarStyle: {
+            display: 'none', // Hide default tab bar
+          },
+        }}
+        tabBar={(props) => (
+          <CustomTabBar {...props} onAddHikePress={() => setShowAddHikeModal(true)} />
+        )}
+      >
       <Tabs.Screen
         name='home'
         options={{
@@ -82,7 +87,12 @@ const TabsLayout = () => {
           }),
         }}
       />
-    </Tabs>
+      </Tabs>
+      <AddHikeModal
+        visible={showAddHikeModal}
+        onClose={() => setShowAddHikeModal(false)}
+      />
+    </>
   )
 }
 

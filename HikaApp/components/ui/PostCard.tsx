@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import TrailMap from '../maps/TrailMap';
+import ActiveTrailMap from '../maps/ActiveTrailMap';
 import { CommentModal } from './CommentModal';
 import { EditPostModal } from './EditPostModal';
 import { getTrail, likePost, unlikePost, getPost } from '../../services/database';
@@ -289,9 +290,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
       )}
 
       {/* Trail Info */}
-      {currentPost.trailId && currentPost.trailName && (
+      {/* Show trail name if it exists (works for both existing trails and custom hikes) */}
+      {currentPost.trailName && (
         <TouchableOpacity
-          onPress={() => router.push(`/trail/${currentPost.trailId}` as any)}
+          onPress={() => {
+            // Only navigate to trail detail if we have a trailId
+            if (currentPost.trailId) {
+              router.push(`/trail/${currentPost.trailId}` as any);
+            }
+          }}
+          disabled={!currentPost.trailId}
           className="px-4 py-2 bg-gray-50 border-y border-gray-100"
         >
           <View className="flex-row items-center">
@@ -305,7 +313,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
                 </View>
               )}
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            {/* Only show chevron if there's a trailId to navigate to */}
+            {currentPost.trailId && (
+              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            )}
           </View>
         </TouchableOpacity>
       )}
@@ -336,10 +347,25 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
         </View>
       )}
 
-      {/* Trail Map */}
-      {currentPost.trailId && (
+      {/* Trail Map or Traveled Path */}
+      {/* Show map if there's a path (from GPS tracking) OR if there's a trailId (existing trail) */}
+      {(currentPost.path && currentPost.path.length > 0) || currentPost.trailId ? (
         <View className="bg-gray-50">
-          {loadingTrail ? (
+          {/* If post has traveled path (from active tracking), show that instead of trail path */}
+          {currentPost.path && currentPost.path.length > 0 ? (
+            <ActiveTrailMap
+              path={currentPost.path.map((point) => ({
+                latitude: point.latitude,
+                longitude: point.longitude,
+                altitude: point.altitude,
+                timestamp: point.timestamp instanceof Date 
+                  ? point.timestamp 
+                  : (point.timestamp ? new Date(point.timestamp as any) : new Date()),
+              }))}
+              currentLocation={currentPost.path[currentPost.path.length - 1] || undefined}
+              height={200}
+            />
+          ) : loadingTrail ? (
             <View className="h-48 items-center justify-center">
               <ActivityIndicator size="small" color="#10b981" />
             </View>
@@ -352,7 +378,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
             </View>
           )}
         </View>
-      )}
+      ) : null}
 
       {/* Engagement Bar */}
       <View className="flex-row items-center px-4 py-2 border-t border-gray-100">

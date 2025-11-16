@@ -193,7 +193,7 @@ const RemoteProfile = () => {
         const ps: Post[] = [];
         snap.forEach((d) => {
           const data = d.data();
-          ps.push({
+          const post: Post = {
             id: d.id,
             ...data,
             createdAt: data.createdAt?.toDate?.() || new Date(),
@@ -202,7 +202,17 @@ const RemoteProfile = () => {
               ...c,
               createdAt: c.createdAt?.toDate?.() || new Date(),
             })),
-          } as Post);
+          } as Post;
+          
+          // Convert path timestamps from Firestore Timestamps to Date objects
+          if (post.path && Array.isArray(post.path)) {
+            post.path = post.path.map((point: any) => ({
+              ...point,
+              timestamp: point.timestamp?.toDate ? point.timestamp.toDate() : (point.timestamp instanceof Date ? point.timestamp : new Date(point.timestamp || Date.now())),
+            }));
+          }
+          
+          ps.push(post);
         });
         setPosts(ps);
         setLoadingPosts(false);
