@@ -5,7 +5,7 @@
 ### 1. Setup Environment
 ```bash
 git clone https://github.com/thientu745/Hika.git
-cd <your-repo-name>
+cd Hika
 ```
 
 ### 2. Install Dependencies
