@@ -28,8 +28,13 @@ export default function WelcomeScreen() {
       <View className="flex-1 items-center justify-between">
         
         {/* Header Section */}
-        <View className="items-center mt-28">
-          <Text className="text-5xl font-bold text-black mb-4">Hika</Text>
+        <View className="items-center mt-28 w-full">
+          {/* Hika with lines on both sides */}
+          <View className="flex-row items-center w-full mb-4">
+            <View className="flex-1 h-1.5 bg-black" />
+            <Text className="text-5xl font-bold text-black mx-6">Hika</Text>
+            <View className="flex-1 h-1.5 bg-black" />
+          </View>
           
           {/* Welcome Quote */}
           <Text className="text-2xl text-black font-bold text-center mt-10">
@@ -46,22 +51,20 @@ export default function WelcomeScreen() {
           {/* Next Button */}
           <View className="w-full max-w-sm">
             <Link href="/signup" asChild>
-            <TouchableOpacity className="bg-hika-darkgreen py-4 px-6 rounded-full items-center">
-              <Text className="text-white text-lg font-semibold">Go Forth!</Text>
-            </TouchableOpacity>
+              <TouchableOpacity className="bg-hika-darkgreen py-4 px-6 rounded-full items-center">
+                <Text className="text-white text-lg font-semibold">Go Forth!</Text>
+              </TouchableOpacity>
             </Link>
           </View>
         </View>
 
-        {/* Illustration Placeholder */}
+        {/* Illustration */}
         <View className="items-center mb-8">
-            <Image
-              source={require('../assets/images/welcome.png')}
-              style={{ width: 250, height: 250 }}
-              resizeMode="contain"
-            >
-
-            </Image>
+          <Image
+            source={require('../assets/images/welcome.png')}
+            style={{ width: 250, height: 250 }}
+            resizeMode="contain"
+          />
         </View>
       </View>
     </View>

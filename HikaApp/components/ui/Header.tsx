@@ -12,7 +12,7 @@ export const Header: React.FC = () => {
         }
       >
         <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-extrabold text-hika-darkgreen">Hika</Text>
+          <Text className="text-3xl font-extrabold text-hika-darkgreen">Hika</Text>
           <Text className="text-sm text-gray-500">Explore trails & friends</Text>
         </View>
       </View>

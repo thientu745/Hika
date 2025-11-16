@@ -122,14 +122,14 @@ const Profile = () => {
                 cachePolicy="memory-disk"
               />
             ) : (
-              <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center">
+              <View className="w-24 h-24 bg-hika-darkgreen rounded-full items-center justify-center">
                 <Text className="text-3xl font-bold text-white">
                   {displayName.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
             {/* Upload overlay button */}
-            <View className="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full items-center justify-center border-2 border-white">
+            <View className="absolute bottom-0 right-0 w-8 h-8 bg-hika-green rounded-full items-center justify-center border-2 border-white">
               {uploading ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
@@ -158,17 +158,17 @@ const Profile = () => {
           <Text className="text-lg font-semibold text-gray-900 mb-3">Stats</Text>
           <View className="flex-row justify-between">
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">
+              <Text className="text-2xl font-bold text-hika-darkgreen">
                 {(totalDistance / 1000).toFixed(1)} km
               </Text>
               <Text className="text-gray-600 text-sm">Total Distance</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">{totalHikes}</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">{totalHikes}</Text>
               <Text className="text-gray-600 text-sm">Total Hikes</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-green-600">
+              <Text className="text-2xl font-bold text-hika-darkgreen">
                 {Math.floor(totalTime / 3600)}h
               </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
