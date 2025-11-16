@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,10 +45,18 @@ export default function SignupScreen() {
 
   return (
     <View className="flex-1 bg-hika-green px-6 justify-center">
-      <View className="max-w-sm w-full mx-auto">
+      <View className="items-center">
+        <Image
+          source={require('../assets/images/signup.png')}
+          style={{ width: 125, height: 125 }}
+          resizeMode="contain"
+        />
+      </View>
+
+      <View className="max-w-sm w-full mx-auto mb-14">
         {/* Header */}
-        <Text className="text-3xl font-bold text-black mb-2">Create Account</Text>
-        <Text className="text-black mb-8">Join Hika and start exploring trails</Text>
+        <Text className="text-3xl font-bold text-black mb-2 self-center">Create Account</Text>
+        <Text className="text-black mb-8 self-center">Join Hika and start exploring trails</Text>
 
         {/* Display Name Input */}
         <View className="mb-4">
@@ -56,7 +64,7 @@ export default function SignupScreen() {
           <TextInput
             className="border border-black rounded-lg px-4 py-3 text-black bg-white"
             placeholder="Enter your display name"
-            placeholderTextColor="black"
+            placeholderTextColor={"black"}
             value={displayName}
             onChangeText={setDisplayName}
             autoCapitalize="words"
@@ -68,9 +76,9 @@ export default function SignupScreen() {
         <View className="mb-4">
           <Text className="text-black mb-2 font-medium">Email</Text>
           <TextInput
-            className="border border-black rounded-lg px-4 py-3 text-base bg-white"
+            className="border border-black rounded-lg px-4 py-3 text-black bg-white"
             placeholder="Enter your email"
-            placeholderTextColor="black"
+            placeholderTextColor={"black"}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -83,9 +91,9 @@ export default function SignupScreen() {
         <View className="mb-6">
           <Text className="text-black mb-2 font-medium">Password</Text>
           <TextInput
-            className="border border-black-300 rounded-lg px-4 py-3 text-base bg-white"
+            className="border border-black rounded-lg px-4 py-3 text-black bg-white"
             placeholder="Enter your password (min. 6 characters)"
-            placeholderTextColor="black"
+            placeholderTextColor={"black"}
             value={password}
             onChangeText={setPassword}
             secureTextEntry

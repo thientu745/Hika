@@ -44,7 +44,7 @@ export default function WelcomeScreen() {
 
         {/* Create Account Section */}
         <View className="w-full items-center">
-          <Text className="text-2xl font-semibold text-black mb-6 text-center">
+          <Text className="text-2xl font-semibold text-black mb-8 text-center">
             Create Your Account
           </Text>
 
