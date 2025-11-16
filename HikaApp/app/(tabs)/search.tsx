@@ -35,16 +35,7 @@ const Search = () => {
   const [useOpenStreetMap, setUseOpenStreetMap] = useState(true);
   const [showStatePicker, setShowStatePicker] = useState(false);
 
-  // Redirect to welcome if not authenticated
-  if (!loading && !user) {
-    return <Redirect href="/welcome" />;
-  }
-
-  if (loading || !user) {
-    return <LoadingScreen message="Loading search..." variant="minimal" />;
-  }
-
-  // Search function - only called when search button is pressed
+  // Search function - only called when search button is pressed (must be before early returns)
   const performSearch = useCallback(async () => {
     // Don't search if only difficulty is selected without name or location
     if (!searchQuery.trim() && !locationFilter.trim()) {
@@ -105,6 +96,15 @@ const Search = () => {
       setIsSearching(false);
     }
   }, [searchQuery, locationFilter, difficultyFilter, useOpenStreetMap]);
+
+  // Redirect to welcome if not authenticated (after all hooks)
+  if (!loading && !user) {
+    return <Redirect href="/welcome" />;
+  }
+
+  if (loading || !user) {
+    return <LoadingScreen message="Loading search..." variant="minimal" />;
+  }
 
   const handleTrailPress = (trailId: string) => {
     router.push(`/trail/${trailId}` as any);

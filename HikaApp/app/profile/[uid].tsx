@@ -10,6 +10,7 @@ import { doc, onSnapshot, collection, query, where, orderBy, limit } from "fireb
 import { Button } from "../../components/ui/Button";
 import { PostComposer } from "../../components/ui/PostComposer";
 import { PostCard } from "../../components/ui/PostCard";
+import { Image } from "expo-image";
 import type { Post, UserProfile, Trail, UserRank } from "../../types";
 
 // Rank thresholds
@@ -428,11 +429,20 @@ const RemoteProfile = () => {
           </View>
         )}
         <View className="items-center mb-4">
-          <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center mb-3">
-            <Text className="text-3xl font-bold text-white">
-              {profile.displayName?.charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          {profile.profilePictureUrl ? (
+            <Image
+              source={{ uri: profile.profilePictureUrl }}
+              style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#E5E7EB' }}
+              contentFit="cover"
+              className="mb-3"
+            />
+          ) : (
+            <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center mb-3">
+              <Text className="text-3xl font-bold text-white">
+                {profile.displayName?.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <Text className="text-2xl font-bold text-gray-900">
             {profile.displayName}
           </Text>
