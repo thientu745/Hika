@@ -10,7 +10,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { Redirect, useRouter, Link } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
-import { Input } from "../../components/ui/Input";
 import { PostCard } from "../../components/ui/PostCard";
 import { searchUsers, subscribeToFeedPosts } from "../../services/database";
 import { Image } from "expo-image";
@@ -144,9 +143,9 @@ const Home = () => {
         {/* People search */}
         <View className="mb-4">
           <TextInput
-            className="rounded-lg px-4 py-3 text-hika-darkgreen bg-transparent bg-white border border-white"
+            className="rounded-lg px-4 py-3 text-white bg-transparent border border-white"
             placeholder="Search people by name or username"
-            placeholderTextColor="#516d58"
+            placeholderTextColor="#9CA3AF"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -155,7 +154,7 @@ const Home = () => {
             {results.map((u) => (
               <Link key={u.uid} href={("/profile/" + u.uid) as any} asChild>
                 <TouchableOpacity
-                  className="flex-row items-center py-3 border-b border-gray-100"
+                  className="flex-row items-center py-3 border-b border-gray-700"
                   onPress={() => router.push(`/profile/${u.uid}` as any)}
                 >
                   {u.profilePictureUrl ? (
@@ -208,13 +207,25 @@ const Home = () => {
           </View>
         </View>
 
-        {/* Composer removed from Home - posts are created on your profile page only */}
-
+        {/* Feed */}
         <View className="mb-4">
           {loadingFeed ? (
-            <Text className="text-gray-500">Loading feed...</Text>
+            <Text className="text-gray-400">Loading feed...</Text>
           ) : feedPosts.length === 0 ? (
-            <Text className="text-gray-500">No posts yet.</Text>
+            <View className="items-center py-8">
+              {/* Wrap image in a white background View */}
+              <View className="bg-off-white rounded-lg p-4 mb-4">
+                <Image
+                  source={require('../../assets/images/deer.png')}
+                  style={{ width: 200, height: 200 }}
+                  contentFit="contain"
+                />
+              </View>
+              <Text className="text-white text-center font-bold mt-4">No posts yet...</Text>
+              <Text className="text-white text-sm text-center font-bold mt-2 px-4">
+                Follow some hikers to see their adventures!
+              </Text>
+            </View>
           ) : (
             feedPosts
               .filter((p) => p.id !== "DELETED")

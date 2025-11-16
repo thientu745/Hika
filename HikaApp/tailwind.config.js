@@ -7,7 +7,8 @@ module.exports = {
     extend: {
       colors: {
         'hika-green': '#92C59F',
-        'hika-darkgreen': '#516D58'
+        'hika-darkgreen': '#516D58',
+        'off-white': '#ffffc2'
       }
     }
   },
