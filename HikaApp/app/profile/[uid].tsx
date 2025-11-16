@@ -400,26 +400,34 @@ const RemoteProfile = () => {
 
   if (!profile) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-gray-600">Profile not found.</Text>
+      <View style={{ flex: 1, backgroundColor: '#516D58', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 }}>
+        <Ionicons name="person-outline" size={64} color="#9CA3AF" />
+        <Text style={{ fontSize: 18, fontWeight: '600', color: '#FFFFFF', marginTop: 16, textAlign: 'center' }}>
+          Profile not found.
+        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-hika-darkgreen">
-      <View className="px-4 py-6">
+    <ScrollView 
+      style={{ flex: 1, backgroundColor: '#516D58' }}
+      contentContainerStyle={{ paddingBottom: 20 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
         {/* Back Button */}
         <TouchableOpacity
-          className="mb-4 flex-row items-center"
+          style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
           onPress={() => router.back()}
+          activeOpacity={0.7}
         >
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          <Text className="text-white ml-2 font-semibold">Back</Text>
+          <Text style={{ color: '#FFFFFF', marginLeft: 8, fontWeight: '600', fontSize: 16 }}>Back</Text>
         </TouchableOpacity>
 
         {/* Profile Header */}
-        <View className="items-center mb-6">
+        <View style={{ alignItems: 'center', marginBottom: 24 }}>
           {profile.profilePictureUrl ? (
             <View>
               <Image
@@ -455,53 +463,60 @@ const RemoteProfile = () => {
             </View>
           )}
 
-          {/* Changed from text-black to text-white */}
-          <Text className="text-2xl font-bold text-white mt-4">
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginTop: 12 }}>
             {profile.displayName}
           </Text>
 
           {/* Followers & Following Stats (Instagram style) */}
-          <View className="flex-row items-center justify-center mt-4 mb-2">
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, marginBottom: 8 }}>
             <TouchableOpacity
               onPress={() => setShowFollowersList(true)}
-              className="items-center mx-6"
+              style={{ alignItems: 'center', marginHorizontal: 24 }}
+              activeOpacity={0.7}
             >
-              <Text className="text-xl font-bold text-white">
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF' }}>
                 {profile?.followers?.length || 0}
               </Text>
-              <Text className="text-sm text-gray-300 mt-1">Followers</Text>
+              <Text style={{ fontSize: 13, color: '#E5E7EB', marginTop: 4 }}>Followers</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowFollowingList(true)}
-              className="items-center mx-6"
+              style={{ alignItems: 'center', marginHorizontal: 24 }}
+              activeOpacity={0.7}
             >
-              <Text className="text-xl font-bold text-white">
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF' }}>
                 {profile?.following?.length || 0}
               </Text>
-              <Text className="text-sm text-gray-300 mt-1">Following</Text>
+              <Text style={{ fontSize: 13, color: '#E5E7EB', marginTop: 4 }}>Following</Text>
             </TouchableOpacity>
           </View>
 
           {profile.bio && (
-            <Text className="text-gray-300 mt-2 text-center">
+            <Text style={{ color: '#E5E7EB', marginTop: 8, textAlign: 'center', fontSize: 14 }}>
               {profile.bio}
             </Text>
           )}
 
-          {/* Follow Button - Fixed syntax */}
+          {/* Follow Button */}
           {user && uid !== user.uid && (
             <TouchableOpacity
               style={{
                 marginTop: 16,
                 paddingVertical: 12,
-                paddingHorizontal: 24,
-                borderRadius: 8,
-                backgroundColor: following ? "#FFFFFF" : "#17AE3C",
-                borderWidth: 2,
-                borderColor: "#FFFFFF",
+                paddingHorizontal: 32,
+                borderRadius: 12,
+                backgroundColor: following ? '#FFFFFF' : '#92C59F',
+                borderWidth: following ? 1 : 0,
+                borderColor: '#E5E7EB',
+                shadowColor: following ? '#000' : '#92C59F',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: following ? 0.1 : 0.3,
+                shadowRadius: 4,
+                elevation: following ? 2 : 4,
               }}
               onPress={handleFollowToggle}
               disabled={processingFollow}
+              activeOpacity={0.8}
             >
               {processingFollow ? (
                 <ActivityIndicator
@@ -511,7 +526,8 @@ const RemoteProfile = () => {
               ) : (
                 <Text
                   style={{
-                    fontWeight: "600",
+                    fontWeight: '700',
+                    fontSize: 16,
                     color: following ? "#516D58" : "#FFFFFF",
                   }}
                 >
@@ -523,154 +539,202 @@ const RemoteProfile = () => {
         </View>
 
         {/* Stats */}
-        <View className="bg-gray-50 rounded-lg p-4 mb-4">
-          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 2,
+        }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 16 }}>
             Stats
           </Text>
-          <View className="flex-row justify-between">
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#516D58' }}>
                 {((profile?.totalDistance || 0) / 1000).toFixed(1)} km
               </Text>
-              <Text className="text-gray-600 text-sm">Total Distance</Text>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Total Distance</Text>
             </View>
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#516D58' }}>
                 {profile?.totalHikes || 0}
               </Text>
-              <Text className="text-gray-600 text-sm">Total Hikes</Text>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Total Hikes</Text>
             </View>
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: '#516D58' }}>
                 {Math.floor((profile?.totalTime || 0) / 3600)}h
               </Text>
-              <Text className="text-gray-600 text-sm">Total Time</Text>
+              <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 4 }}>Total Time</Text>
             </View>
           </View>
         </View>
 
         {/* Rank & Progress */}
         {profile && (
-          <View className="bg-gray-50 rounded-lg p-4 mb-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', marginBottom: 12 }}>
               Rank & Progress
             </Text>
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center">
-                {(() => {
-                  const currentRank = (profile.rank || "Copper") as UserRank;
-                  const rankVisuals = getRankVisuals(currentRank);
-                  return (
-                    <View
-                      style={[
-                        styles.rankBadge,
-                        { backgroundColor: rankVisuals.bgColor },
-                      ]}
-                      className="flex-row items-center px-3 py-2 rounded-full mr-3"
-                    >
-                      <Ionicons
-                        name={rankVisuals.icon}
-                        size={24}
-                        color={rankVisuals.color}
-                      />
-                      <Text
-                        className="text-lg font-bold ml-2"
-                        style={{ color: rankVisuals.color }}
+            <View style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 20,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {(() => {
+                    const currentRank = (profile.rank || "Copper") as UserRank;
+                    const rankVisuals = getRankVisuals(currentRank);
+                    return (
+                      <View
+                        style={[
+                          styles.rankBadge,
+                          { backgroundColor: rankVisuals.bgColor },
+                          {
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                            borderRadius: 20,
+                            marginRight: 12,
+                          },
+                        ]}
                       >
-                        {currentRank}
+                        <Ionicons
+                          name={rankVisuals.icon}
+                          size={24}
+                          color={rankVisuals.color}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontWeight: '700',
+                            marginLeft: 8,
+                            color: rankVisuals.color,
+                          }}
+                        >
+                          {currentRank}
+                        </Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+                <Text style={{ color: '#6B7280', fontWeight: '600', fontSize: 15 }}>
+                  {(profile.xp || 0).toLocaleString()} XP
+                </Text>
+              </View>
+
+              {/* XP Progress Bar */}
+              {(() => {
+                const progress = getXPProgress(
+                  profile.xp || 0,
+                  (profile.rank || "Copper") as UserRank
+                );
+                return (
+                  <View>
+                    <View style={styles.progressBarContainer}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          { width: `${progress.progressPercent}%` },
+                        ]}
+                      />
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                      <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                        {progress.rankMin.toLocaleString()} XP
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#9CA3AF' }}>
+                        {progress.rankMax === Infinity
+                          ? "∞"
+                          : progress.rankMax.toLocaleString()}{" "}
+                        XP
                       </Text>
                     </View>
-                  );
-                })()}
-              </View>
-              <Text className="text-gray-600 font-medium">
-                {(profile.xp || 0).toLocaleString()} XP
-              </Text>
-            </View>
-
-            {/* XP Progress Bar */}
-            {(() => {
-              const progress = getXPProgress(
-                profile.xp || 0,
-                (profile.rank || "Copper") as UserRank
-              );
-              return (
-                <View>
-                  <View style={styles.progressBarContainer}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        { width: `${progress.progressPercent}%` },
-                      ]}
-                    />
-                  </View>
-                  <View className="flex-row justify-between mt-2">
-                    <Text className="text-xs text-gray-500">
-                      {progress.rankMin.toLocaleString()} XP
-                    </Text>
-                    <Text className="text-xs text-gray-500">
-                      {progress.rankMax === Infinity
-                        ? "∞"
-                        : progress.rankMax.toLocaleString()}{" "}
-                      XP
-                    </Text>
-                  </View>
-                  {progress.nextRank &&
-                    progress.xpNeededForNextRank !== null && (
-                      <View className="mt-3 pt-3 border-t border-gray-200">
-                        <View className="flex-row items-center mb-1">
-                          <Text className="text-sm text-gray-700 mr-2">
-                            Next Rank:
+                    {progress.nextRank &&
+                      progress.xpNeededForNextRank !== null && (
+                        <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            <Text style={{ fontSize: 13, color: '#374151', marginRight: 8 }}>
+                              Next Rank:
+                            </Text>
+                            {(() => {
+                              const nextRankVisuals = getRankVisuals(
+                                progress.nextRank!
+                              );
+                              return (
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <Ionicons
+                                    name={nextRankVisuals.icon}
+                                    size={16}
+                                    color={nextRankVisuals.color}
+                                  />
+                                  <Text
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: '600',
+                                      marginLeft: 4,
+                                      color: nextRankVisuals.color,
+                                    }}
+                                  >
+                                    {progress.nextRank}
+                                  </Text>
+                                </View>
+                              );
+                            })()}
+                          </View>
+                          <Text style={{ fontSize: 13, color: '#516D58', fontWeight: '600' }}>
+                            {progress.xpNeededForNextRank.toLocaleString()} XP needed
                           </Text>
-                          {(() => {
-                            const nextRankVisuals = getRankVisuals(
-                              progress.nextRank!
-                            );
-                            return (
-                              <View className="flex-row items-center">
-                                <Ionicons
-                                  name={nextRankVisuals.icon}
-                                  size={16}
-                                  color={nextRankVisuals.color}
-                                />
-                                <Text
-                                  className="text-sm font-semibold ml-1"
-                                  style={{ color: nextRankVisuals.color }}
-                                >
-                                  {progress.nextRank}
-                                </Text>
-                              </View>
-                            );
-                          })()}
                         </View>
-                        <Text className="text-sm text-green-600 font-medium">
-                          {progress.xpNeededForNextRank.toLocaleString()} XP
-                          needed
+                      )}
+                    {!progress.nextRank && (
+                      <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                        <Text style={{ fontSize: 13, color: '#6B7280', fontWeight: '600' }}>
+                          🏆 Maximum rank achieved!
                         </Text>
                       </View>
                     )}
-                  {!progress.nextRank && (
-                    <View className="mt-3 pt-3 border-t border-gray-200">
-                      <Text className="text-sm text-gray-600 font-medium">
-                        🏆 Maximum rank achieved!
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })()}
+                  </View>
+                );
+              })()}
+            </View>
           </View>
         )}
 
         {/* Favorites */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 16 }}>
           <TouchableOpacity
             onPress={() => setShowFavorites(!showFavorites)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="heart" size={20} color="#EF4444" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '700', marginLeft: 8, fontSize: 16 }}>
                 Favorites ({profile?.favorites?.length || 0})
               </Text>
             </View>
@@ -682,37 +746,54 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showFavorites && (
-            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <View style={{
+              marginTop: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
               {loadingFavorites ? (
-                <View className="py-8 items-center">
-                  <ActivityIndicator size="small" color="#10b981" />
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#516D58" />
                 </View>
               ) : favoriteTrails.length === 0 ? (
-                <View className="p-4 bg-white">
-                  <Text className="text-gray-500 text-center">
+                <View style={{ padding: 20, backgroundColor: '#FFFFFF' }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No favorite trails yet.
                   </Text>
                 </View>
               ) : (
-                favoriteTrails.map((trail) => (
+                favoriteTrails.map((trail, index) => (
                   <TouchableOpacity
                     key={trail.id}
                     onPress={() => router.push(`/trail/${trail.id}` as any)}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white"
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: index < favoriteTrails.length - 1 ? 1 : 0,
+                      borderBottomColor: '#F3F4F6',
+                      backgroundColor: '#FFFFFF',
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#111827', fontWeight: '600', fontSize: 15 }}>
                           {trail.name}
                         </Text>
                         {trail.location && (
-                          <View className="flex-row items-center mt-1">
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                             <Ionicons
                               name="location"
                               size={12}
                               color="#6B7280"
                             />
-                            <Text className="text-gray-600 text-xs ml-1">
+                            <Text style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>
                               {trail.location}
                             </Text>
                           </View>
@@ -732,14 +813,27 @@ const RemoteProfile = () => {
         </View>
 
         {/* Wishlist */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 16 }}>
           <TouchableOpacity
             onPress={() => setShowWishlist(!showWishlist)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="bookmark" size={20} color="#3B82F6" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '700', marginLeft: 8, fontSize: 16 }}>
                 Wishlist ({profile?.wishlist?.length || 0})
               </Text>
             </View>
@@ -751,37 +845,54 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showWishlist && (
-            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <View style={{
+              marginTop: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
               {loadingWishlist ? (
-                <View className="py-8 items-center">
-                  <ActivityIndicator size="small" color="#10b981" />
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#516D58" />
                 </View>
               ) : wishlistTrails.length === 0 ? (
-                <View className="p-4 bg-white">
-                  <Text className="text-gray-500 text-center">
+                <View style={{ padding: 20, backgroundColor: '#FFFFFF' }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No trails in wishlist yet.
                   </Text>
                 </View>
               ) : (
-                wishlistTrails.map((trail) => (
+                wishlistTrails.map((trail, index) => (
                   <TouchableOpacity
                     key={trail.id}
                     onPress={() => router.push(`/trail/${trail.id}` as any)}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white"
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: index < wishlistTrails.length - 1 ? 1 : 0,
+                      borderBottomColor: '#F3F4F6',
+                      backgroundColor: '#FFFFFF',
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#111827', fontWeight: '600', fontSize: 15 }}>
                           {trail.name}
                         </Text>
                         {trail.location && (
-                          <View className="flex-row items-center mt-1">
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                             <Ionicons
                               name="location"
                               size={12}
                               color="#6B7280"
                             />
-                            <Text className="text-gray-600 text-xs ml-1">
+                            <Text style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>
                               {trail.location}
                             </Text>
                           </View>
@@ -801,14 +912,27 @@ const RemoteProfile = () => {
         </View>
 
         {/* Completed Trails */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 16 }}>
           <TouchableOpacity
             onPress={() => setShowCompleted(!showCompleted)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '700', marginLeft: 8, fontSize: 16 }}>
                 Completed Trails ({profile?.completed?.length || 0})
               </Text>
             </View>
@@ -820,37 +944,54 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showCompleted && (
-            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <View style={{
+              marginTop: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              overflow: 'hidden',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}>
               {loadingCompleted ? (
-                <View className="py-8 items-center">
-                  <ActivityIndicator size="small" color="#10b981" />
+                <View style={{ paddingVertical: 32, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color="#516D58" />
                 </View>
               ) : completedTrails.length === 0 ? (
-                <View className="p-4 bg-white">
-                  <Text className="text-gray-500 text-center">
+                <View style={{ padding: 20, backgroundColor: '#FFFFFF' }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No completed trails yet.
                   </Text>
                 </View>
               ) : (
-                completedTrails.map((trail) => (
+                completedTrails.map((trail, index) => (
                   <TouchableOpacity
                     key={trail.id}
                     onPress={() => router.push(`/trail/${trail.id}` as any)}
-                    className="px-4 py-3 border-b border-gray-100 last:border-b-0 bg-white"
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: index < completedTrails.length - 1 ? 1 : 0,
+                      borderBottomColor: '#F3F4F6',
+                      backgroundColor: '#FFFFFF',
+                    }}
+                    activeOpacity={0.7}
                   >
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#111827', fontWeight: '600', fontSize: 15 }}>
                           {trail.name}
                         </Text>
                         {trail.location && (
-                          <View className="flex-row items-center mt-1">
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                             <Ionicons
                               name="location"
                               size={12}
                               color="#6B7280"
                             />
-                            <Text className="text-gray-600 text-xs ml-1">
+                            <Text style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>
                               {trail.location}
                             </Text>
                           </View>
@@ -870,14 +1011,27 @@ const RemoteProfile = () => {
         </View>
 
         {/* Posts */}
-        <View className="mb-4">
+        <View style={{ marginBottom: 16 }}>
           <TouchableOpacity
             onPress={() => setShowPosts(!showPosts)}
-            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              padding: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}
+            activeOpacity={0.7}
           >
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="document-text" size={20} color="#10b981" />
-              <Text className="text-gray-900 font-semibold ml-2">
+              <Text style={{ color: '#111827', fontWeight: '700', marginLeft: 8, fontSize: 16 }}>
                 Posts ({posts.filter((p) => p.id !== "DELETED").length})
               </Text>
             </View>
@@ -889,17 +1043,36 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showPosts && (
-            <View className="mt-2">
+            <View style={{ marginTop: 8 }}>
               {loadingPosts ? (
-                <View className="py-8 items-center bg-gray-50 rounded-lg">
-                  <ActivityIndicator size="small" color="#10b981" />
-                  <Text className="text-gray-500 text-sm mt-2">
+                <View style={{
+                  paddingVertical: 32,
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 12,
+                  elevation: 2,
+                }}>
+                  <ActivityIndicator size="small" color="#516D58" />
+                  <Text style={{ color: '#6B7280', fontSize: 13, marginTop: 8 }}>
                     Loading posts...
                   </Text>
                 </View>
               ) : posts.filter((p) => p.id !== "DELETED").length === 0 ? (
-                <View className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <Text className="text-gray-500 text-center">
+                <View style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 20,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 12,
+                  elevation: 2,
+                }}>
+                  <Text style={{ color: '#6B7280', textAlign: 'center', fontSize: 14 }}>
                     No posts yet.
                   </Text>
                 </View>
@@ -908,24 +1081,25 @@ const RemoteProfile = () => {
                   {posts
                     .filter((p) => p.id !== "DELETED")
                     .map((p) => (
-                      <PostCard
-                        key={p.id}
-                        post={p}
-                        onUpdate={(updatedPost) => {
-                          // Handle post deletion
-                          if (updatedPost && updatedPost.id === "DELETED") {
-                            setPosts((prev) =>
-                              prev.filter((post) => post.id !== p.id)
-                            );
-                          } else if (updatedPost) {
-                            setPosts((prev) =>
-                              prev.map((post) =>
-                                post.id === p.id ? updatedPost : post
-                              )
-                            );
-                          }
-                        }}
-                      />
+                      <View key={p.id} style={{ marginBottom: 12 }}>
+                        <PostCard
+                          post={p}
+                          onUpdate={(updatedPost) => {
+                            // Handle post deletion
+                            if (updatedPost && updatedPost.id === "DELETED") {
+                              setPosts((prev) =>
+                                prev.filter((post) => post.id !== p.id)
+                              );
+                            } else if (updatedPost) {
+                              setPosts((prev) =>
+                                prev.map((post) =>
+                                  post.id === p.id ? updatedPost : post
+                                )
+                              );
+                            }
+                          }}
+                        />
+                      </View>
                     ))}
                 </View>
               )}
