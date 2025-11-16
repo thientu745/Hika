@@ -6,6 +6,7 @@ import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { getTrail } from '../../services/database';
 import { Ionicons } from '@expo/vector-icons';
 import TrailMap from '../../components/maps/TrailMap';
+import { LogHikeModal } from '../../components/ui/LogHikeModal';
 import type { Trail } from '../../types';
 
 const TrailDetail = () => {
@@ -15,6 +16,7 @@ const TrailDetail = () => {
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLogHikeModal, setShowLogHikeModal] = useState(false);
 
   useEffect(() => {
     if (id && !authLoading) {
@@ -238,6 +240,14 @@ const TrailDetail = () => {
               <Text className="text-white font-semibold text-lg ml-2">Start Trail</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              className="bg-blue-500 rounded-lg p-4 flex-row items-center justify-center"
+              onPress={() => setShowLogHikeModal(true)}
+            >
+              <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+              <Text className="text-white font-semibold text-lg ml-2">Log Hike</Text>
+            </TouchableOpacity>
+
             <View className="flex-row space-x-3">
               <TouchableOpacity
                 className="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-3 flex-row items-center justify-center"
@@ -264,6 +274,19 @@ const TrailDetail = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Log Hike Modal */}
+      {trail && (
+        <LogHikeModal
+          visible={showLogHikeModal}
+          onClose={() => setShowLogHikeModal(false)}
+          trail={trail}
+          onSuccess={() => {
+            // Optionally refresh trail data or show success message
+            console.log('Hike logged successfully');
+          }}
+        />
+      )}
     </View>
   );
 };

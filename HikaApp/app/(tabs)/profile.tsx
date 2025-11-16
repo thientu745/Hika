@@ -1,9 +1,66 @@
-import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { Redirect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { PostComposer } from '../../components/ui/PostComposer';
+import { PostCard } from '../../components/ui/PostCard';
+import { getUserPosts, getTrail } from '../../services/database';
+import type { Post, Trail, UserRank } from '../../types';
+
+// Rank thresholds
+const RANK_THRESHOLDS: Record<UserRank, { min: number; max: number; next?: UserRank }> = {
+  Copper: { min: 0, max: 999, next: 'Bronze' },
+  Bronze: { min: 1000, max: 4999, next: 'Silver' },
+  Silver: { min: 5000, max: 14999, next: 'Gold' },
+  Gold: { min: 15000, max: 49999, next: 'Platinum' },
+  Platinum: { min: 50000, max: 149999, next: 'Diamond' },
+  Diamond: { min: 150000, max: Infinity },
+};
+
+// Rank visual indicators
+const getRankVisuals = (rank: UserRank) => {
+  const visuals: Record<UserRank, { icon: keyof typeof Ionicons.glyphMap; color: string; bgColor: string; emoji: string }> = {
+    Copper: { icon: 'trophy', color: '#B87333', bgColor: '#F5E6D3', emoji: '🥉' },
+    Bronze: { icon: 'trophy', color: '#CD7F32', bgColor: '#F5E6D3', emoji: '🥉' },
+    Silver: { icon: 'trophy', color: '#C0C0C0', bgColor: '#F0F0F0', emoji: '🥈' },
+    Gold: { icon: 'trophy', color: '#FFD700', bgColor: '#FFF9E6', emoji: '🥇' },
+    Platinum: { icon: 'star', color: '#E5E4E2', bgColor: '#F5F5F5', emoji: '💎' },
+    Diamond: { icon: 'star', color: '#B9F2FF', bgColor: '#E6F7FF', emoji: '💠' },
+  };
+  return visuals[rank];
+};
+
+// Helper function to calculate XP progress
+const getXPProgress = (currentXP: number, currentRank: UserRank) => {
+  const rankInfo = RANK_THRESHOLDS[currentRank];
+  const xpInCurrentRank = currentXP - rankInfo.min;
+  const xpNeededForCurrentRank = rankInfo.max - rankInfo.min + 1;
+  const progressPercent = Math.min(100, (xpInCurrentRank / xpNeededForCurrentRank) * 100);
+  
+  let xpNeededForNextRank: number | null = null;
+  let nextRank: UserRank | null = null;
+  
+  if (rankInfo.next) {
+    nextRank = rankInfo.next;
+    const nextRankInfo = RANK_THRESHOLDS[rankInfo.next];
+    xpNeededForNextRank = nextRankInfo.min - currentXP;
+  }
+  
+  return {
+    currentXP,
+    currentRank,
+    xpInCurrentRank,
+    xpNeededForCurrentRank,
+    progressPercent,
+    xpNeededForNextRank,
+    nextRank,
+    rankMin: rankInfo.min,
+    rankMax: rankInfo.max === Infinity ? currentXP : rankInfo.max,
+  };
+};
+
 import { Image } from 'expo-image';
 import { pickImage, uploadProfilePicture } from '../../services/storage';
 import { updateUserProfile } from '../../services/database';
@@ -11,6 +68,21 @@ import { updateUserProfile } from '../../services/database';
 const Profile = () => {
   const { user, userProfile, signOut, loading, refreshUserProfile } = useAuth();
   const router = useRouter();
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  
+  // Toggle states for dropdowns
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [showWishlist, setShowWishlist] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
+  
+  // Trail lists
+  const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
+  const [wishlistTrails, setWishlistTrails] = useState<Trail[]>([]);
+  const [completedTrails, setCompletedTrails] = useState<Trail[]>([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
+  const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const handleSignOut = async () => {
@@ -79,6 +151,126 @@ const Profile = () => {
     }
   };
 
+  // Use fallback values if profile is still loading (needed for useEffect dependencies)
+  const favorites = userProfile?.favorites || [];
+  const completed = userProfile?.completed || [];
+  const wishlist = userProfile?.wishlist || [];
+
+  // Load user posts (must be before early returns)
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const loadPosts = async () => {
+      setLoadingPosts(true);
+      try {
+        const posts = await getUserPosts(user.uid, 100);
+        setUserPosts(posts);
+      } catch (err) {
+        console.error('Error loading posts:', err);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+
+    loadPosts();
+  }, [user?.uid]);
+
+  // Load favorite trails when section is expanded (must be before early returns)
+  useEffect(() => {
+    if (!showFavorites || favorites.length === 0) {
+      setFavoriteTrails([]);
+      return;
+    }
+
+    const loadFavoriteTrails = async () => {
+      setLoadingFavorites(true);
+      try {
+        const trails: Trail[] = [];
+        for (const trailId of favorites) {
+          try {
+            const trail = await getTrail(trailId);
+            if (trail) {
+              trails.push(trail);
+            }
+          } catch (err) {
+            console.warn(`Failed to load favorite trail ${trailId}:`, err);
+          }
+        }
+        setFavoriteTrails(trails);
+      } catch (err) {
+        console.error('Error loading favorite trails:', err);
+      } finally {
+        setLoadingFavorites(false);
+      }
+    };
+
+    loadFavoriteTrails();
+  }, [showFavorites, favorites]);
+
+  // Load wishlist trails when section is expanded (must be before early returns)
+  useEffect(() => {
+    if (!showWishlist || wishlist.length === 0) {
+      setWishlistTrails([]);
+      return;
+    }
+
+    const loadWishlistTrails = async () => {
+      setLoadingWishlist(true);
+      try {
+        const trails: Trail[] = [];
+        for (const trailId of wishlist) {
+          try {
+            const trail = await getTrail(trailId);
+            if (trail) {
+              trails.push(trail);
+            }
+          } catch (err) {
+            console.warn(`Failed to load wishlist trail ${trailId}:`, err);
+          }
+        }
+        setWishlistTrails(trails);
+      } catch (err) {
+        console.error('Error loading wishlist trails:', err);
+      } finally {
+        setLoadingWishlist(false);
+      }
+    };
+
+    loadWishlistTrails();
+  }, [showWishlist, wishlist]);
+
+  // Load completed trails when section is expanded (must be before early returns)
+  useEffect(() => {
+    if (!showCompleted || completed.length === 0) {
+      setCompletedTrails([]);
+      return;
+    }
+
+    const loadCompletedTrails = async () => {
+      setLoadingCompleted(true);
+      try {
+        const trails: Trail[] = [];
+        for (const trailId of completed) {
+          try {
+            const trail = await getTrail(trailId);
+            if (trail) {
+              trails.push(trail);
+            }
+          } catch (err) {
+            console.warn(`Failed to load completed trail ${trailId}:`, err);
+          }
+        }
+        setCompletedTrails(trails);
+      } catch (err) {
+        console.error('Error loading completed trails:', err);
+      } finally {
+        setLoadingCompleted(false);
+      }
+    };
+
+    loadCompletedTrails();
+  }, [showCompleted, completed]);
+
   // Redirect to welcome if not authenticated (after all hooks)
   if (!loading && !user) {
     return <Redirect href="/welcome" />;
@@ -98,9 +290,6 @@ const Profile = () => {
   const totalTime = userProfile?.totalTime || 0;
   const rank = userProfile?.rank || 'Copper';
   const xp = userProfile?.xp || 0;
-  const favorites = userProfile?.favorites || [];
-  const completed = userProfile?.completed || [];
-  const wishlist = userProfile?.wishlist || [];
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -149,7 +338,14 @@ const Profile = () => {
         {/* Composer (create posts) */}
         {user && (
           <View className="mb-4">
-            <PostComposer />
+            <PostComposer 
+              onPosted={() => {
+                // Refresh posts after creating a new post
+                if (user?.uid) {
+                  getUserPosts(user.uid, 100).then(setUserPosts).catch(console.error);
+                }
+              }}
+            />
           </View>
         )}
 
@@ -178,27 +374,263 @@ const Profile = () => {
 
         {/* Game Features */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">Rank</Text>
+          <Text className="text-lg font-semibold text-gray-900 mb-3">Rank & Progress</Text>
           <View className="bg-gray-50 rounded-lg p-4">
-            <Text className="text-xl font-bold text-gray-900">{rank}</Text>
-            <Text className="text-gray-600">XP: {xp}</Text>
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center">
+                {(() => {
+                  const rankVisuals = getRankVisuals(rank as UserRank);
+                  return (
+                    <View 
+                      style={[styles.rankBadge, { backgroundColor: rankVisuals.bgColor }]}
+                      className="flex-row items-center px-3 py-2 rounded-full mr-3"
+                    >
+                      <Ionicons name={rankVisuals.icon} size={24} color={rankVisuals.color} />
+                      <Text className="text-lg font-bold ml-2" style={{ color: rankVisuals.color }}>
+                        {rank}
+                      </Text>
+                    </View>
+                  );
+                })()}
+              </View>
+              <Text className="text-gray-600 font-medium">{xp.toLocaleString()} XP</Text>
+            </View>
+            
+            {/* XP Progress Bar */}
+            {(() => {
+              const progress = getXPProgress(xp, rank as UserRank);
+              return (
+                <View>
+                  <View style={styles.progressBarContainer}>
+                    <View 
+                      style={[
+                        styles.progressBarFill, 
+                        { width: `${progress.progressPercent}%` }
+                      ]} 
+                    />
+                  </View>
+                  <View className="flex-row justify-between mt-2">
+                    <Text className="text-xs text-gray-500">
+                      {progress.rankMin.toLocaleString()} XP
+                    </Text>
+                    <Text className="text-xs text-gray-500">
+                      {progress.rankMax === Infinity ? '∞' : progress.rankMax.toLocaleString()} XP
+                    </Text>
+                  </View>
+                  {progress.nextRank && progress.xpNeededForNextRank !== null && (
+                    <View className="mt-3 pt-3 border-t border-gray-200">
+                      <View className="flex-row items-center mb-1">
+                        <Text className="text-sm text-gray-700 mr-2">Next Rank:</Text>
+                        {(() => {
+                          const nextRankVisuals = getRankVisuals(progress.nextRank!);
+                          return (
+                            <View className="flex-row items-center">
+                              <Ionicons name={nextRankVisuals.icon} size={16} color={nextRankVisuals.color} />
+                              <Text className="text-sm font-semibold ml-1" style={{ color: nextRankVisuals.color }}>
+                                {progress.nextRank}
+                              </Text>
+                            </View>
+                          );
+                        })()}
+                      </View>
+                      <Text className="text-sm text-green-600 font-medium">
+                        {progress.xpNeededForNextRank.toLocaleString()} XP needed
+                      </Text>
+                    </View>
+                  )}
+                  {!progress.nextRank && (
+                    <View className="mt-3 pt-3 border-t border-gray-200">
+                      <Text className="text-sm text-gray-600 font-medium">
+                        🏆 Maximum rank achieved!
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
           </View>
         </View>
 
-        {/* Lists */}
+        {/* Favorites */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-gray-900 mb-3">Lists</Text>
-          <View className="space-y-2">
-            <TouchableOpacity className="bg-gray-50 rounded-lg p-4">
-              <Text className="text-gray-900 font-medium">Favorites ({favorites.length})</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-gray-50 rounded-lg p-4">
-              <Text className="text-gray-900 font-medium">Completed ({completed.length})</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-gray-50 rounded-lg p-4">
-              <Text className="text-gray-900 font-medium">Wishlist ({wishlist.length})</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => setShowFavorites(!showFavorites)}
+            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="heart" size={20} color="#EF4444" />
+              <Text className="text-gray-900 font-semibold ml-2">Favorites ({favorites.length})</Text>
+            </View>
+            <Ionicons 
+              name={showFavorites ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#6B7280" 
+            />
+          </TouchableOpacity>
+          
+          {showFavorites && (
+            <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+              {loadingFavorites ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="small" color="#10b981" />
+                </View>
+              ) : favoriteTrails.length === 0 ? (
+                <View className="p-4">
+                  <Text className="text-gray-500 text-center">No favorite trails yet.</Text>
+                </View>
+              ) : (
+                favoriteTrails.map((trail) => (
+                  <TouchableOpacity
+                    key={trail.id}
+                    onPress={() => router.push(`/trail/${trail.id}` as any)}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        {trail.location && (
+                          <View className="flex-row items-center mt-1">
+                            <Ionicons name="location" size={12} color="#6B7280" />
+                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Wishlist */}
+        <View className="mb-6">
+          <TouchableOpacity
+            onPress={() => setShowWishlist(!showWishlist)}
+            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="bookmark" size={20} color="#3B82F6" />
+              <Text className="text-gray-900 font-semibold ml-2">Wishlist ({wishlist.length})</Text>
+            </View>
+            <Ionicons 
+              name={showWishlist ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#6B7280" 
+            />
+          </TouchableOpacity>
+          
+          {showWishlist && (
+            <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+              {loadingWishlist ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="small" color="#10b981" />
+                </View>
+              ) : wishlistTrails.length === 0 ? (
+                <View className="p-4">
+                  <Text className="text-gray-500 text-center">No trails in wishlist yet.</Text>
+                </View>
+              ) : (
+                wishlistTrails.map((trail) => (
+                  <TouchableOpacity
+                    key={trail.id}
+                    onPress={() => router.push(`/trail/${trail.id}` as any)}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        {trail.location && (
+                          <View className="flex-row items-center mt-1">
+                            <Ionicons name="location" size={12} color="#6B7280" />
+                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Completed Trails */}
+        <View className="mb-6">
+          <TouchableOpacity
+            onPress={() => setShowCompleted(!showCompleted)}
+            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              <Text className="text-gray-900 font-semibold ml-2">Completed Trails ({completed.length})</Text>
+            </View>
+            <Ionicons 
+              name={showCompleted ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#6B7280" 
+            />
+          </TouchableOpacity>
+          
+          {showCompleted && (
+            <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+              {loadingCompleted ? (
+                <View className="py-8 items-center">
+                  <ActivityIndicator size="small" color="#10b981" />
+                </View>
+              ) : completedTrails.length === 0 ? (
+                <View className="p-4">
+                  <Text className="text-gray-500 text-center">No completed trails yet.</Text>
+                </View>
+              ) : (
+                completedTrails.map((trail) => (
+                  <TouchableOpacity
+                    key={trail.id}
+                    onPress={() => router.push(`/trail/${trail.id}` as any)}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        {trail.location && (
+                          <View className="flex-row items-center mt-1">
+                            <Ionicons name="location" size={12} color="#6B7280" />
+                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Posts */}
+        <View className="mb-6">
+          <Text className="text-lg font-semibold text-gray-900 mb-3">My Posts</Text>
+          {loadingPosts ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="small" color="#10b981" />
+              <Text className="text-gray-500 text-sm mt-2">Loading posts...</Text>
+            </View>
+          ) : userPosts.length === 0 ? (
+            <View className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <Text className="text-gray-500 text-center">No posts yet. Create your first post!</Text>
+            </View>
+          ) : (
+            <View>
+              {userPosts
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+            </View>
+          )}
         </View>
 
         {/* Sign Out */}
@@ -212,5 +644,26 @@ const Profile = () => {
     </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  progressBarContainer: {
+    height: 24,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: 12,
+    minWidth: 4,
+  },
+  rankBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+});
 
 export default Profile;
