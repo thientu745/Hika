@@ -116,7 +116,7 @@ const Home = () => {
 
   return (
     <ScrollView
-      className="flex-1 bg-white"
+      className="flex-1 bg-hika-darkgreen"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View className="px-4 py-6">
@@ -124,6 +124,7 @@ const Home = () => {
         <View className="mb-4">
           <Input
             placeholder="Search people by name or username"
+            placeholderTextColor={"white"}
             value={searchQuery}
             onChangeText={setSearchQuery}
             containerClassName="mb-2"
@@ -154,7 +155,7 @@ const Home = () => {
         {/* Composer removed from Home - posts are created on your profile page only */}
 
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-gray-900 mb-2">Feed</Text>
+          <Text className="text-lg font-semibold text-white mb-2">Feed</Text>
           {loadingFeed ? (
             <Text className="text-gray-500">Loading feed...</Text>
           ) : feedPosts.length === 0 ? (
