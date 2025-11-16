@@ -24,6 +24,10 @@ export default function RootLayout() {
           name="signup" 
           options={{ headerShown: false }} 
         />
+        <Stack.Screen 
+          name="profile/[uid]" 
+          options={{ headerShown: false }} 
+        />
       </Stack>
     </AuthProvider>
   );

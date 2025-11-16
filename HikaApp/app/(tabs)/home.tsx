@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import React, { useState, useEffect, useRef } from "react";
 import { Redirect, useRouter, Link } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
 import { Input } from "../../components/ui/Input";
-import { searchUsers, getFeedPosts } from "../../services/database";
+import { searchUsers, subscribeToFeedPosts } from "../../services/database";
 
 import type { UserProfile, Post } from "../../types";
 
@@ -20,6 +20,7 @@ const Home = () => {
   // feed state
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Debounced live search (runs automatically as user types)
   useEffect(() => {
@@ -50,32 +51,56 @@ const Home = () => {
     };
   }, [searchQuery]);
 
-  // Load feed posts for followed users (includes own posts)
+  // Load feed posts for followed users (real-time with onSnapshot)
   useEffect(() => {
-    const loadFeed = async () => {
-      setLoadingFeed(true);
-      try {
-        const following = (userProfile?.following || []) as string[];
-        const ids = Array.from(new Set([...(following || []), user?.uid].filter(Boolean))) as string[];
-        if (ids.length === 0) {
-          setFeedPosts([]);
-          setLoadingFeed(false);
-          return;
-        }
-        const posts = await getFeedPosts(ids.slice(0, 10), 50);
-        setFeedPosts(posts);
-      } catch (error) {
-        console.warn("Failed to load feed", error);
-        setFeedPosts([]);
-      } finally {
-        setLoadingFeed(false);
-      }
-    };
+    const following = (userProfile?.following || []) as string[];
+    const ids = Array.from(new Set([...(following || []), user?.uid].filter(Boolean))) as string[];
+    
+    if (ids.length === 0) {
+      setFeedPosts([]);
+      setLoadingFeed(false);
+      return;
+    }
 
-    loadFeed();
+    setLoadingFeed(true);
+    
+    // Subscribe to real-time feed updates
+    const unsubscribe = subscribeToFeedPosts(ids, (posts) => {
+      setFeedPosts(posts);
+      setLoadingFeed(false);
+    }, 50);
+
+    // Unsubscribe on unmount or when following list changes
+    return () => {
+      try {
+        unsubscribe();
+      } catch {}
+    };
   }, [userProfile?.following, user?.uid]);
 
-  // Posts are loaded via the effect above; refresh function removed to avoid unused linter warning.
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Trigger a manual re-subscription of the feed
+    const following = (userProfile?.following || []) as string[];
+    const ids = Array.from(new Set([...(following || []), user?.uid].filter(Boolean))) as string[];
+    
+    if (ids.length > 0) {
+      // Re-subscribe to get latest posts
+      const unsubscribe = subscribeToFeedPosts(ids, (posts) => {
+        setFeedPosts(posts);
+        setRefreshing(false);
+      }, 50);
+      
+      // Clean up after a short delay to ensure data is loaded
+      setTimeout(() => {
+        try {
+          unsubscribe();
+        } catch {}
+      }, 1000);
+    } else {
+      setRefreshing(false);
+    }
+  };
 
   // Redirect if not authenticated
   if (!loading && !user) {
@@ -90,7 +115,10 @@ const Home = () => {
   // helper navigation (use inline router.push in handlers)
 
   return (
-    <ScrollView className="flex-1 bg-white">
+    <ScrollView
+      className="flex-1 bg-white"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View className="px-4 py-6">
         {/* People search */}
         <View className="mb-4">
