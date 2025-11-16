@@ -20,6 +20,7 @@ import {
   increment,
   arrayUnion,
   arrayRemove,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type {
@@ -165,6 +166,39 @@ export const unfollowUser = async (currentUserId: string, targetUserId: string):
       updatedAt: serverTimestamp(),
     }),
   ]);
+};
+
+/**
+ * Search users by displayName or username (client-side filtering).
+ * Note: Firestore recommended approach is to maintain search index (Algolia) for large datasets.
+ */
+export const searchUsers = async (searchTerm?: string, limitCount: number = 20): Promise<UserProfile[]> => {
+  const usersRef = collection(db, 'users');
+  const querySnapshot = await getDocs(usersRef);
+  const users: UserProfile[] = [];
+
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    users.push({
+      uid: docSnap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    } as UserProfile);
+  });
+
+  if (!searchTerm || searchTerm.trim() === '') {
+    return users.slice(0, limitCount);
+  }
+
+  const lower = searchTerm.toLowerCase();
+  const filtered = users.filter((u) => {
+    const dn = (u.displayName || '').toLowerCase();
+    const un = (u as any).username ? (u as any).username.toLowerCase() : '';
+    return dn.includes(lower) || un.includes(lower);
+  });
+
+  return filtered.slice(0, limitCount);
 };
 
 // ==================== Trail Operations ====================
@@ -424,6 +458,82 @@ export const getFeedPosts = async (followingUserIds: string[], limitCount: numbe
   });
 
   return posts;
+};
+
+/**
+ * Get real-time feed posts with onSnapshot listener
+ * Handles chunked queries for following lists > 10 users (Firestore 'in' limit)
+ */
+export const subscribeToFeedPosts = (
+  followingUserIds: string[],
+  callback: (posts: Post[]) => void,
+  limitCount: number = 50
+): (() => void) => {
+  if (followingUserIds.length === 0) {
+    callback([]);
+    return () => {};
+  }
+
+  const postsRef = collection(db, 'posts');
+  const unsubscribers: (() => void)[] = [];
+  const allPosts: Map<string, Post> = new Map();
+
+  // Split following list into chunks of 10 (Firestore 'in' limit)
+  const chunks: string[][] = [];
+  for (let i = 0; i < followingUserIds.length; i += 10) {
+    chunks.push(followingUserIds.slice(i, i + 10));
+  }
+
+  // Subscribe to each chunk
+  chunks.forEach((chunk) => {
+    const q = query(
+      postsRef,
+      where('userId', 'in', chunk),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        // Update posts from this chunk
+        snap.forEach((doc) => {
+          const data = doc.data();
+          const post: Post = {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+            comments: (data.comments || []).map((c: any) => ({
+              ...c,
+              createdAt: c.createdAt?.toDate() || new Date(),
+            })),
+          } as Post;
+          allPosts.set(doc.id, post);
+        });
+
+        // Sort all posts by createdAt desc and return top limitCount
+        const sorted = Array.from(allPosts.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        callback(sorted.slice(0, limitCount));
+      },
+      (err) => {
+        console.warn('Feed listener error:', err);
+      }
+    );
+
+    unsubscribers.push(unsubscribe);
+  });
+
+  // Return unsubscribe function that unsubscribes from all chunks
+  return () => {
+    unsubscribers.forEach((unsub) => {
+      try {
+        unsub();
+      } catch {}
+    });
+  };
 };
 
 /**
