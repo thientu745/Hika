@@ -499,7 +499,7 @@ const Profile = () => {
               right: 0,
               width: 32,
               height: 32,
-              backgroundColor: '#516D58',
+              backgroundColor: '#4ADE80',
               borderRadius: 16,
               alignItems: 'center',
               justifyContent: 'center',
