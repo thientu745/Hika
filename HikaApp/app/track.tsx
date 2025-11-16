@@ -20,6 +20,8 @@ interface LocationPoint {
   longitude: number;
   altitude?: number;
   timestamp: Date;
+  accuracy?: number; // GPS accuracy in meters
+  speed?: number; // Speed in m/s
 }
 
 const TrackScreen = () => {
@@ -46,6 +48,10 @@ const TrackScreen = () => {
   const isPausedRef = useRef(false);
   const timeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  
+  // For elevation smoothing (moving average)
+  const elevationHistoryRef = useRef<number[]>([]);
+  const MAX_ELEVATION_HISTORY = 5; // Keep last 5 elevation readings for smoothing
 
   // Request location permissions on mount
   useEffect(() => {
@@ -73,8 +79,8 @@ const TrackScreen = () => {
     }
   };
 
-  // Calculate distance between two coordinates (Haversine formula)
-  const calculateDistance = (
+  // Calculate 2D distance between two coordinates (Haversine formula)
+  const calculateDistance2D = (
     lat1: number,
     lon1: number,
     lat2: number,
@@ -93,6 +99,82 @@ const TrackScreen = () => {
     return R * c;
   };
 
+  // Calculate 3D distance (accounting for elevation change)
+  const calculateDistance3D = (
+    lat1: number,
+    lon1: number,
+    alt1: number | null,
+    lat2: number,
+    lon2: number,
+    alt2: number | null
+  ): number => {
+    const horizontalDistance = calculateDistance2D(lat1, lon1, lat2, lon2);
+    
+    // If we have altitude data, calculate 3D distance
+    if (alt1 !== null && alt2 !== null && alt1 !== undefined && alt2 !== undefined) {
+      const verticalDistance = Math.abs(alt2 - alt1);
+      // Pythagorean theorem for 3D distance
+      return Math.sqrt(horizontalDistance * horizontalDistance + verticalDistance * verticalDistance);
+    }
+    
+    return horizontalDistance;
+  };
+
+  // Smooth elevation using moving average
+  const smoothElevation = (elevation: number | null | undefined): number | null => {
+    if (elevation === null || elevation === undefined) {
+      return null;
+    }
+
+    elevationHistoryRef.current.push(elevation);
+    
+    // Keep only last N readings
+    if (elevationHistoryRef.current.length > MAX_ELEVATION_HISTORY) {
+      elevationHistoryRef.current.shift();
+    }
+
+    // Calculate average
+    const sum = elevationHistoryRef.current.reduce((a, b) => a + b, 0);
+    return sum / elevationHistoryRef.current.length;
+  };
+
+  // Check if GPS reading is valid (filters out bad readings)
+  const isValidLocation = (
+    location: Location.LocationObject,
+    lastLocation: LocationPoint | null
+  ): boolean => {
+    // Check accuracy - reject readings with accuracy worse than 50 meters
+    if (location.coords.accuracy && location.coords.accuracy > 50) {
+      return false;
+    }
+
+    // Check for unrealistic speed jumps (more than 50 m/s = 180 km/h)
+    if (lastLocation && location.coords.speed !== null && location.coords.speed !== undefined) {
+      if (location.coords.speed > 50) {
+        return false; // Unrealistic speed for hiking
+      }
+
+      // Check for unrealistic position jumps
+      if (lastLocation.latitude && lastLocation.longitude) {
+        const distance = calculateDistance2D(
+          lastLocation.latitude,
+          lastLocation.longitude,
+          location.coords.latitude,
+          location.coords.longitude
+        );
+        
+        // If speed is available, check if the distance makes sense
+        // Allow up to 10 m/s (36 km/h) which is reasonable for running
+        const maxDistance = (location.coords.speed || 10) * 2; // 2 seconds max
+        if (distance > maxDistance && distance > 20) {
+          return false; // Unrealistic jump
+        }
+      }
+    }
+
+    return true;
+  };
+
   const startTracking = async () => {
     if (locationPermission !== true) {
       await requestLocationPermission();
@@ -105,11 +187,19 @@ const TrackScreen = () => {
         accuracy: Location.Accuracy.BestForNavigation,
       });
 
+      // Initialize elevation history with first reading
+      const rawAltitude = location.coords.altitude || null;
+      if (rawAltitude !== null) {
+        elevationHistoryRef.current = [rawAltitude];
+      }
+
       const initialPoint: LocationPoint = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        altitude: location.coords.altitude || undefined,
+        altitude: rawAltitude || undefined,
         timestamp: new Date(),
+        accuracy: location.coords.accuracy || undefined,
+        speed: location.coords.speed || undefined,
       };
 
       setCurrentLocation(initialPoint);
@@ -123,7 +213,7 @@ const TrackScreen = () => {
       setIsPaused(false);
       isPausedRef.current = false;
       lastLocationRef.current = initialPoint;
-      lastElevationRef.current = initialPoint.altitude || null;
+      lastElevationRef.current = rawAltitude;
       // Timer will be started by useEffect when startTime and isTracking change
 
       // Start watching location with more frequent updates
@@ -135,22 +225,36 @@ const TrackScreen = () => {
         },
         (location) => {
           if (!isPausedRef.current) {
+            // Validate GPS reading
+            if (!isValidLocation(location, lastLocationRef.current)) {
+              return; // Skip invalid readings
+            }
+
+            // Smooth elevation if available
+            const rawAltitude = location.coords.altitude || null;
+            const smoothedAltitude = smoothElevation(rawAltitude);
+
             const newPoint: LocationPoint = {
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
-              altitude: location.coords.altitude || undefined,
+              altitude: smoothedAltitude || undefined,
               timestamp: new Date(),
+              accuracy: location.coords.accuracy || undefined,
+              speed: location.coords.speed || undefined,
             };
 
+            // Always update current location for map display (even if we don't add to path)
             setCurrentLocation(newPoint);
 
             if (lastLocationRef.current) {
-              // Calculate distance
-              const segmentDistance = calculateDistance(
+              // Calculate 3D distance (more accurate)
+              const segmentDistance = calculateDistance3D(
                 lastLocationRef.current.latitude,
                 lastLocationRef.current.longitude,
+                lastLocationRef.current.altitude || null,
                 newPoint.latitude,
-                newPoint.longitude
+                newPoint.longitude,
+                newPoint.altitude || null
               );
 
               // Only add point if it's at least 2 meters away (to reduce noise while keeping smooth path)
@@ -158,25 +262,32 @@ const TrackScreen = () => {
                 setPath((prev) => [...prev, newPoint]);
                 setDistance((prev) => prev + segmentDistance);
 
-                // Calculate elevation gain
+                // Calculate elevation gain with smoothing and threshold
                 if (
                   newPoint.altitude !== undefined &&
                   lastElevationRef.current !== null &&
                   newPoint.altitude > lastElevationRef.current
                 ) {
                   const gain = newPoint.altitude - lastElevationRef.current;
-                  setElevationGain((prev) => prev + gain);
-                }
-
-                lastLocationRef.current = newPoint;
-                if (newPoint.altitude !== undefined) {
+                  // Only count elevation gain if it's significant (at least 1 meter)
+                  // This filters out GPS noise in altitude readings
+                  if (gain >= 1) {
+                    setElevationGain((prev) => prev + gain);
+                    lastElevationRef.current = newPoint.altitude;
+                  }
+                } else if (newPoint.altitude !== undefined) {
+                  // Update elevation reference even if no gain
                   lastElevationRef.current = newPoint.altitude;
                 }
               }
+
+              lastLocationRef.current = newPoint;
             } else {
               lastLocationRef.current = newPoint;
               if (newPoint.altitude !== undefined) {
                 lastElevationRef.current = newPoint.altitude;
+                // Initialize elevation history
+                elevationHistoryRef.current = [newPoint.altitude];
               }
             }
           }
@@ -238,6 +349,7 @@ const TrackScreen = () => {
             setElapsedTime(0);
             lastLocationRef.current = null;
             lastElevationRef.current = null;
+            elevationHistoryRef.current = [];
             isPausedRef.current = false;
             if (timeIntervalRef.current) {
               clearInterval(timeIntervalRef.current);
