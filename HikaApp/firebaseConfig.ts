@@ -3,9 +3,10 @@ import { initializeApp } from "firebase/app";
 // import { getAnalytics } from "firebase/analytics"; <- Don't need analytics
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
-import { initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { initializeAuth, getAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { Platform } from "react-native";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 
@@ -25,21 +26,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // const analytics = getAnalytics(app); <- Don't need analytics
 
-// Initialize Auth with AsyncStorage persistence for React Native
-// Use initializeAuth for React Native to enable persistence
-// If auth is already initialized, getAuth will be used as fallback
+// Initialize Auth with platform-specific persistence
+// For web: use getAuth (default browser persistence)
+// For React Native: use initializeAuth with AsyncStorage persistence
 let auth;
-try {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-  });
-} catch (error: any) {
-  // If auth is already initialized, use getAuth instead
-  if (error.code === 'auth/already-initialized') {
-    const { getAuth } = require('firebase/auth');
-    auth = getAuth(app);
-  } else {
-    throw error;
+if (Platform.OS === 'web') {
+  // Web platform: use getAuth with default browser persistence
+  auth = getAuth(app);
+} else {
+  // React Native platform: use initializeAuth with AsyncStorage
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+    });
+  } catch (error: any) {
+    // If auth is already initialized, use getAuth instead
+    if (error.code === 'auth/already-initialized') {
+      auth = getAuth(app);
+    } else {
+      throw error;
+    }
   }
 }
 export { auth };
