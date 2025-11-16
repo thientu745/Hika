@@ -37,8 +37,8 @@ const Search = () => {
 
   // Search function - only called when search button is pressed (must be before early returns)
   const performSearch = useCallback(async () => {
-    // Don't search if only difficulty is selected without name or location
-    if (!searchQuery.trim() && !locationFilter.trim()) {
+    // Allow searching if we have difficulty filter, search query, or location
+    if (!searchQuery.trim() && !locationFilter.trim() && !difficultyFilter.trim()) {
       setTrails([]);
       setOverpassTrails([]);
       setHasSearched(false);
@@ -59,7 +59,8 @@ const Search = () => {
 
       // First, always search Firestore
       // When searching by location, fetch more results to ensure we get all matches
-      const firestoreLimit = location ? 500 : 50;
+      // When searching by difficulty only, fetch more results too
+      const firestoreLimit = location ? 500 : difficulty ? 200 : 50;
       const firestoreResults = await searchTrailsFromFirestore(
         searchTerm,
         location,
@@ -68,6 +69,7 @@ const Search = () => {
       );
 
       // If OpenStreetMap is enabled and we have a location or search term, fetch from Overpass
+      // Note: Overpass doesn't support difficulty filtering, so we only use it when we have location/search term
       if (useOpenStreetMap && (location || searchTerm)) {
         setIsLoadingOverpass(true);
         const result = await searchAllTrails(
@@ -85,7 +87,7 @@ const Search = () => {
         }
         setIsLoadingOverpass(false);
       } else {
-        // No location or OpenStreetMap disabled, just use Firestore results
+        // No location/search term or OpenStreetMap disabled, just use Firestore results
         setTrails(firestoreResults);
       }
     } catch (error) {
@@ -285,7 +287,62 @@ const Search = () => {
                 {['', 'Easy', 'Moderate', 'Hard', 'Expert'].map((diff, index) => (
                   <TouchableOpacity
                     key={diff || `all-${index}`}
-                    onPress={() => setDifficultyFilter(diff === difficultyFilter ? '' : diff)}
+                    onPress={async () => {
+                      const newFilter = diff === difficultyFilter ? '' : diff;
+                      setDifficultyFilter(newFilter);
+                      
+                      // Automatically trigger search when difficulty filter changes
+                      if (newFilter || searchQuery.trim() || locationFilter.trim()) {
+                        // Create a search function with the new filter value
+                        setIsSearching(true);
+                        setHasSearched(true);
+                        setOverpassTrails([]);
+                        setSavedTrailsCount(null);
+
+                        try {
+                          const location = locationFilter.trim() || undefined;
+                          const searchTerm = searchQuery.trim() || undefined;
+                          const difficulty = newFilter && newFilter.trim() ? (newFilter as any) : undefined;
+
+                          const firestoreLimit = location ? 500 : difficulty ? 200 : 50;
+                          const firestoreResults = await searchTrailsFromFirestore(
+                            searchTerm,
+                            location,
+                            difficulty,
+                            firestoreLimit
+                          );
+
+                          if (useOpenStreetMap && (location || searchTerm)) {
+                            setIsLoadingOverpass(true);
+                            const result = await searchAllTrails(
+                              searchTerm,
+                              location,
+                              difficulty,
+                              true,
+                              200
+                            );
+                            setTrails(result.trails);
+                            if (result.savedCount !== undefined && result.savedCount > 0) {
+                              setSavedTrailsCount(result.savedCount);
+                              setTimeout(() => setSavedTrailsCount(null), 5000);
+                            }
+                            setIsLoadingOverpass(false);
+                          } else {
+                            setTrails(firestoreResults);
+                          }
+                        } catch (error) {
+                          console.error('Search error:', error);
+                          setTrails([]);
+                          setIsLoadingOverpass(false);
+                        } finally {
+                          setIsSearching(false);
+                        }
+                      } else {
+                        // Clear results if all filters are cleared
+                        setTrails([]);
+                        setHasSearched(false);
+                      }
+                    }}
                     className={`px-4 py-2 rounded-full border ${
                       difficultyFilter === diff
                         ? 'bg-white border-white'
@@ -509,10 +566,10 @@ const Search = () => {
             <View className="items-center py-8">
               <Ionicons name="search-outline" size={64} color="#FFFFFF" />
               <Text className="mt-4 text-white text-center font-semibold">
-                Start typing to search for trails
+                Search for trails
               </Text>
               <Text className="mt-2 text-sm text-white text-center px-4">
-                Enter a trail name or location to search. You can also filter by difficulty after searching.
+                Enter a trail name, select a location, or choose a difficulty level to filter trails.
               </Text>
             </View>
           )}

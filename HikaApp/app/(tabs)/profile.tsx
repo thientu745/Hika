@@ -6,7 +6,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   Alert,
+  Modal,
+  Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import React, { useState, useEffect } from "react";
 import { Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,14 +18,18 @@ import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
 import { PostComposer } from "../../components/ui/PostComposer";
 import { PostCard } from "../../components/ui/PostCard";
+import { FollowingList } from "../../components/ui/FollowingList";
+import { FollowersList } from "../../components/ui/FollowersList";
 import {
   getUserPosts,
   getTrail,
+  getUserProfiles,
   removeTrailFromList,
   updateUserProfile,
 } from "../../services/database";
 import { pickImage, uploadProfilePicture } from "../../services/storage";
-import type { Post, Trail, UserRank } from "../../types";
+import { getRankBorderStyle } from "../../utils/rankStyles";
+import type { Post, Trail, UserRank, UserProfile } from "../../types";
 
 // Rank thresholds
 const RANK_THRESHOLDS: Record<
@@ -125,7 +132,7 @@ const Profile = () => {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
-
+  
   // Trail lists
   const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
   const [wishlistTrails, setWishlistTrails] = useState<Trail[]>([]);
@@ -135,6 +142,10 @@ const Profile = () => {
   const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [removingTrail, setRemovingTrail] = useState<string | null>(null);
+  
+  // Social list modals (using new components)
+  const [showFollowingList, setShowFollowingList] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -145,6 +156,8 @@ const Profile = () => {
   const favorites = userProfile?.favorites || [];
   const completed = userProfile?.completed || [];
   const wishlist = userProfile?.wishlist || [];
+  const followers = userProfile?.followers || [];
+  const following = userProfile?.following || [];
 
   // Load user posts (must be before early returns)
   useEffect(() => {
@@ -440,21 +453,36 @@ const Profile = () => {
             activeOpacity={0.7}
           >
             {profilePictureUrl ? (
-              <Image
-                source={{ uri: profilePictureUrl }}
-                style={{
-                  width: 96,
-                  height: 96,
-                  borderRadius: 48,
-                  borderWidth: 2,
-                  borderColor: "#E5E7EB",
-                }}
-                contentFit="cover"
-                key={profilePictureUrl}
-                cachePolicy="memory-disk"
-              />
+              <View>
+                <Image
+                  source={{ uri: profilePictureUrl }}
+                  style={[
+                    {
+                      width: 96,
+                      height: 96,
+                      borderRadius: 48,
+                    },
+                    getRankBorderStyle((userProfile?.rank || 'Copper') as UserRank),
+                  ]}
+                  contentFit="cover"
+                  key={profilePictureUrl}
+                  cachePolicy="memory-disk"
+                />
+              </View>
             ) : (
-              <View className="w-24 h-24 bg-white rounded-full items-center justify-center">
+              <View
+                style={[
+                  {
+                    width: 96,
+                    height: 96,
+                    borderRadius: 48,
+                    backgroundColor: 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                  getRankBorderStyle((userProfile?.rank || 'Copper') as UserRank),
+                ]}
+              >
                 <Text className="text-3xl font-bold text-hika-darkgreen">
                   {displayName.charAt(0).toUpperCase()}
                 </Text>
@@ -470,6 +498,24 @@ const Profile = () => {
             </View>
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-white">{displayName}</Text>
+          
+          {/* Followers & Following Stats (Instagram style) */}
+          <View className="flex-row items-center justify-center mt-4 mb-2">
+            <TouchableOpacity
+              onPress={() => setShowFollowersList(true)}
+              className="items-center mx-4"
+            >
+              <Text className="text-xl font-bold text-white">{followers.length}</Text>
+              <Text className="text-sm text-gray-300 mt-1">Followers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowingList(true)}
+              className="items-center mx-4"
+            >
+              <Text className="text-xl font-bold text-white">{following.length}</Text>
+              <Text className="text-sm text-gray-300 mt-1">Following</Text>
+            </TouchableOpacity>
+          </View>
           {!userProfile && (
             <Text className="text-gray-500 text-sm mt-2">
               Loading profile data...
@@ -495,7 +541,7 @@ const Profile = () => {
         )}
 
         {/* Stats */}
-        <View className="bg-gray-50 rounded-lg p-4 mb-6">
+        <View className="bg-gray-50 rounded-lg p-4 mb-4">
           <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Stats</Text>
           <View className="flex-row justify-between">
             <View className="items-center">
@@ -514,6 +560,31 @@ const Profile = () => {
               </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Social Stats */}
+        <View className="bg-gray-50 rounded-lg p-4 mb-6">
+          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Social</Text>
+          <View className="flex-row justify-around">
+            <TouchableOpacity
+              onPress={() => setShowFollowingList(true)}
+              className="items-center"
+            >
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {userProfile?.following?.length || 0}
+              </Text>
+              <Text className="text-gray-600 text-sm">Following</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowersList(true)}
+              className="items-center"
+            >
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {userProfile?.followers?.length || 0}
+              </Text>
+              <Text className="text-gray-600 text-sm">Followers</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -907,6 +978,7 @@ const Profile = () => {
           )}
         </View>
 
+
         {/* Posts */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-white mb-3">My Posts</Text>
@@ -932,7 +1004,18 @@ const Profile = () => {
                     new Date(a.createdAt).getTime()
                 )
                 .map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onUpdate={(updatedPost) => {
+                      // Handle post deletion
+                      if (updatedPost && updatedPost.id === 'DELETED') {
+                        setUserPosts(prev => prev.filter(p => p.id !== post.id));
+                      } else if (updatedPost) {
+                        setUserPosts(prev => prev.map(p => p.id === post.id ? updatedPost : p));
+                      }
+                    }}
+                  />
                 ))}
             </View>
           )}
@@ -945,6 +1028,24 @@ const Profile = () => {
         >
           <Text className="text-white font-semibold">Sign Out</Text>
         </TouchableOpacity>
+
+        {/* Following List Modal */}
+        {user?.uid && (
+          <FollowingList
+            visible={showFollowingList}
+            userId={user.uid}
+            onClose={() => setShowFollowingList(false)}
+          />
+        )}
+
+        {/* Followers List Modal */}
+        {user?.uid && (
+          <FollowersList
+            visible={showFollowersList}
+            userId={user.uid}
+            onClose={() => setShowFollowersList(false)}
+          />
+        )}
       </View>
     </ScrollView>
   );
@@ -968,6 +1069,55 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 600 : 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
   },
 });
 

@@ -1,37 +1,93 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Modal,
+  Platform,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
-import { followUser, unfollowUser, getTrail, getUserPosts } from "../../services/database";
+import { followUser, unfollowUser, getTrail, getUserProfiles } from "../../services/database";
 import { db } from "../../firebaseConfig";
-import { doc, onSnapshot, collection, query, where, orderBy, limit } from "firebase/firestore";
-import { Button } from "../../components/ui/Button";
-import { PostComposer } from "../../components/ui/PostComposer";
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import { PostCard } from "../../components/ui/PostCard";
+import { FollowingList } from "../../components/ui/FollowingList";
+import { FollowersList } from "../../components/ui/FollowersList";
 import { Image } from "expo-image";
+import { getRankBorderStyle } from "../../utils/rankStyles";
+import { PostComposer } from "../../components/ui/PostComposer";
 import type { Post, UserProfile, Trail, UserRank } from "../../types";
 
 // Rank thresholds
-const RANK_THRESHOLDS: Record<UserRank, { min: number; max: number; next?: UserRank }> = {
-  Copper: { min: 0, max: 999, next: 'Bronze' },
-  Bronze: { min: 1000, max: 4999, next: 'Silver' },
-  Silver: { min: 5000, max: 14999, next: 'Gold' },
-  Gold: { min: 15000, max: 49999, next: 'Platinum' },
-  Platinum: { min: 50000, max: 149999, next: 'Diamond' },
+const RANK_THRESHOLDS: Record<
+  UserRank,
+  { min: number; max: number; next?: UserRank }
+> = {
+  Copper: { min: 0, max: 999, next: "Bronze" },
+  Bronze: { min: 1000, max: 4999, next: "Silver" },
+  Silver: { min: 5000, max: 14999, next: "Gold" },
+  Gold: { min: 15000, max: 49999, next: "Platinum" },
+  Platinum: { min: 50000, max: 149999, next: "Diamond" },
   Diamond: { min: 150000, max: Infinity },
 };
 
 // Rank visual indicators
 const getRankVisuals = (rank: UserRank) => {
-  const visuals: Record<UserRank, { icon: keyof typeof Ionicons.glyphMap; color: string; bgColor: string; emoji: string }> = {
-    Copper: { icon: 'trophy', color: '#B87333', bgColor: '#F5E6D3', emoji: '🥉' },
-    Bronze: { icon: 'trophy', color: '#CD7F32', bgColor: '#F5E6D3', emoji: '🥉' },
-    Silver: { icon: 'trophy', color: '#C0C0C0', bgColor: '#F0F0F0', emoji: '🥈' },
-    Gold: { icon: 'trophy', color: '#FFD700', bgColor: '#FFF9E6', emoji: '🥇' },
-    Platinum: { icon: 'star', color: '#E5E4E2', bgColor: '#F5F5F5', emoji: '💎' },
-    Diamond: { icon: 'star', color: '#B9F2FF', bgColor: '#E6F7FF', emoji: '💠' },
+  const visuals: Record<
+    UserRank,
+    {
+      icon: keyof typeof Ionicons.glyphMap;
+      color: string;
+      bgColor: string;
+      emoji: string;
+    }
+  > = {
+    Copper: {
+      icon: "trophy",
+      color: "#B87333",
+      bgColor: "#F5E6D3",
+      emoji: "🥉",
+    },
+    Bronze: {
+      icon: "trophy",
+      color: "#CD7F32",
+      bgColor: "#F5E6D3",
+      emoji: "🥉",
+    },
+    Silver: {
+      icon: "trophy",
+      color: "#C0C0C0",
+      bgColor: "#F0F0F0",
+      emoji: "🥈",
+    },
+    Gold: { icon: "trophy", color: "#FFD700", bgColor: "#FFF9E6", emoji: "🥇" },
+    Platinum: {
+      icon: "star",
+      color: "#E5E4E2",
+      bgColor: "#F5F5F5",
+      emoji: "💎",
+    },
+    Diamond: {
+      icon: "star",
+      color: "#B9F2FF",
+      bgColor: "#E6F7FF",
+      emoji: "💠",
+    },
   };
   return visuals[rank];
 };
@@ -41,17 +97,20 @@ const getXPProgress = (currentXP: number, currentRank: UserRank) => {
   const rankInfo = RANK_THRESHOLDS[currentRank];
   const xpInCurrentRank = currentXP - rankInfo.min;
   const xpNeededForCurrentRank = rankInfo.max - rankInfo.min + 1;
-  const progressPercent = Math.min(100, (xpInCurrentRank / xpNeededForCurrentRank) * 100);
-  
+  const progressPercent = Math.min(
+    100,
+    (xpInCurrentRank / xpNeededForCurrentRank) * 100
+  );
+
   let xpNeededForNextRank: number | null = null;
   let nextRank: UserRank | null = null;
-  
+
   if (rankInfo.next) {
     nextRank = rankInfo.next;
     const nextRankInfo = RANK_THRESHOLDS[rankInfo.next];
     xpNeededForNextRank = nextRankInfo.min - currentXP;
   }
-  
+
   return {
     currentXP,
     currentRank,
@@ -65,7 +124,6 @@ const getXPProgress = (currentXP: number, currentRank: UserRank) => {
   };
 };
 
-
 const RemoteProfile = () => {
   const { uid } = useLocalSearchParams();
   const { user, userProfile, loading, refreshUserProfile } = useAuth();
@@ -76,12 +134,12 @@ const RemoteProfile = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [processingFollow, setProcessingFollow] = useState(false);
   const [following, setFollowing] = useState<boolean>(false);
-  
+
   // Toggle states for dropdowns
   const [showFavorites, setShowFavorites] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
-  
+
   // Trail lists
   const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
   const [wishlistTrails, setWishlistTrails] = useState<Trail[]>([]);
@@ -89,12 +147,16 @@ const RemoteProfile = () => {
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
+  
+  // Social list modals (using new components)
+  const [showFollowingList, setShowFollowingList] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
 
   useEffect(() => {
     if (!uid) return;
 
     setLoadingProfile(true);
-    const profileRef = doc(db, 'users', uid as string);
+    const profileRef = doc(db, "users", uid as string);
     const unsubProfile = onSnapshot(
       profileRef,
       (snap) => {
@@ -112,15 +174,20 @@ const RemoteProfile = () => {
         setLoadingProfile(false);
       },
       (err) => {
-        console.warn('Profile listener error', err);
+        console.warn("Profile listener error", err);
         setLoadingProfile(false);
       }
     );
 
     // Posts listener
     setLoadingPosts(true);
-    const postsRef = collection(db, 'posts');
-    const q = query(postsRef, where('userId', '==', uid as string), orderBy('createdAt', 'desc'), limit(50));
+    const postsRef = collection(db, "posts");
+    const q = query(
+      postsRef,
+      where("userId", "==", uid as string),
+      orderBy("createdAt", "desc"),
+      limit(50)
+    );
     const unsubPosts = onSnapshot(
       q,
       (snap) => {
@@ -142,7 +209,7 @@ const RemoteProfile = () => {
         setLoadingPosts(false);
       },
       (err) => {
-        console.warn('Posts listener error', err);
+        console.warn("Posts listener error", err);
         setLoadingPosts(false);
       }
     );
@@ -180,7 +247,7 @@ const RemoteProfile = () => {
         }
         setFavoriteTrails(trails);
       } catch (err) {
-        console.error('Error loading favorite trails:', err);
+        console.error("Error loading favorite trails:", err);
       } finally {
         setLoadingFavorites(false);
       }
@@ -212,7 +279,7 @@ const RemoteProfile = () => {
         }
         setWishlistTrails(trails);
       } catch (err) {
-        console.error('Error loading wishlist trails:', err);
+        console.error("Error loading wishlist trails:", err);
       } finally {
         setLoadingWishlist(false);
       }
@@ -244,7 +311,7 @@ const RemoteProfile = () => {
         }
         setCompletedTrails(trails);
       } catch (err) {
-        console.error('Error loading completed trails:', err);
+        console.error("Error loading completed trails:", err);
       } finally {
         setLoadingCompleted(false);
       }
@@ -252,13 +319,11 @@ const RemoteProfile = () => {
 
     loadCompletedTrails();
   }, [showCompleted, profile?.completed]);
-
-
   const isOwn = user?.uid === uid;
 
   // Local following state for optimistic UI updates
   useEffect(() => {
-    setFollowing(!!(userProfile?.following?.includes(uid as string)));
+    setFollowing(!!userProfile?.following?.includes(uid as string));
   }, [userProfile, uid]);
 
   // Redirect if not authenticated when auth check finished
@@ -281,7 +346,12 @@ const RemoteProfile = () => {
         // update remote profile locally: remove current user from followers
         setProfile((prevP) =>
           prevP
-            ? { ...prevP, followers: (prevP.followers || []).filter((id) => id !== user.uid) }
+            ? {
+                ...prevP,
+                followers: (prevP.followers || []).filter(
+                  (id) => id !== user.uid
+                ),
+              }
             : prevP
         );
       } else {
@@ -290,7 +360,14 @@ const RemoteProfile = () => {
 
         // update remote profile locally: add current user to followers
         setProfile((prevP) =>
-          prevP ? { ...prevP, followers: Array.from(new Set([...(prevP.followers || []), user.uid])) } : prevP
+          prevP
+            ? {
+                ...prevP,
+                followers: Array.from(
+                  new Set([...(prevP.followers || []), user.uid])
+                ),
+              }
+            : prevP
         );
       }
 
@@ -302,7 +379,7 @@ const RemoteProfile = () => {
       }
     } catch (e) {
       // Revert optimistic update on error
-      console.warn('Follow action failed', e);
+      console.warn("Follow action failed", e);
       setFollowing(prev);
     } finally {
       setProcessingFollow(false);
@@ -336,24 +413,49 @@ const RemoteProfile = () => {
         {/* Profile Header */}
         <View className="items-center mb-6">
           {profile.profilePictureUrl ? (
-            <Image
-              source={{ uri: profile.profilePictureUrl }}
-              style={{ width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: '#E5E7EB' }}
-              contentFit="cover"
-            />
+            <View>
+              <Image
+                source={{ uri: profile.profilePictureUrl }}
+                style={[
+                  {
+                    width: 96,
+                    height: 96,
+                    borderRadius: 48,
+                  },
+                  getRankBorderStyle((profile.rank || "Copper") as UserRank),
+                ]}
+                contentFit="cover"
+              />
+            </View>
           ) : (
-            <View className="w-24 h-24 bg-white rounded-full items-center justify-center mb-4">
+            <View
+              style={[
+                {
+                  width: 96,
+                  height: 96,
+                  borderRadius: 48,
+                  backgroundColor: "white",
+                  alignItems: "center",
+                  justifyContent: "center",
+                },
+                getRankBorderStyle((profile.rank || "Copper") as UserRank),
+              ]}
+            >
               <Text className="text-3xl font-bold text-hika-green">
                 {profile.displayName.charAt(0).toUpperCase()}
               </Text>
             </View>
           )}
-          
+
           {/* Changed from text-black to text-white */}
-          <Text className="text-2xl font-bold text-white mt-4">{profile.displayName}</Text>
-          
+          <Text className="text-2xl font-bold text-white mt-4">
+            {profile.displayName}
+          </Text>
+
           {profile.bio && (
-            <Text className="text-gray-300 mt-2 text-center">{profile.bio}</Text>
+            <Text className="text-gray-300 mt-2 text-center">
+              {profile.bio}
+            </Text>
           )}
 
           {/* Follow Button - Fixed syntax */}
@@ -364,23 +466,26 @@ const RemoteProfile = () => {
                 paddingVertical: 12,
                 paddingHorizontal: 24,
                 borderRadius: 8,
-                backgroundColor: following ? '#FFFFFF' : '#17AE3C',
+                backgroundColor: following ? "#FFFFFF" : "#17AE3C",
                 borderWidth: 2,
-                borderColor: '#FFFFFF',
+                borderColor: "#FFFFFF",
               }}
               onPress={handleFollowToggle}
               disabled={processingFollow}
             >
               {processingFollow ? (
-                <ActivityIndicator size="small" color={following ? '#516D58' : '#FFFFFF'} />
+                <ActivityIndicator
+                  size="small"
+                  color={following ? "#516D58" : "#FFFFFF"}
+                />
               ) : (
-                <Text 
+                <Text
                   style={{
-                    fontWeight: '600',
-                    color: following ? '#516D58' : '#FFFFFF',
+                    fontWeight: "600",
+                    color: following ? "#516D58" : "#FFFFFF",
                   }}
                 >
-                  {following ? 'Following' : 'Follow'}
+                  {following ? "Following" : "Follow"}
                 </Text>
               )}
             </TouchableOpacity>
@@ -389,59 +494,111 @@ const RemoteProfile = () => {
 
         {/* Stats */}
         <View className="bg-gray-50 rounded-lg p-4 mb-4">
-          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Stats</Text>
+          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">
+            Stats
+          </Text>
           <View className="flex-row justify-between">
             <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">{((profile?.totalDistance || 0) / 1000).toFixed(1)} km</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {((profile?.totalDistance || 0) / 1000).toFixed(1)} km
+              </Text>
               <Text className="text-gray-600 text-sm">Total Distance</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">{profile?.totalHikes || 0}</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {profile?.totalHikes || 0}
+              </Text>
               <Text className="text-gray-600 text-sm">Total Hikes</Text>
             </View>
             <View className="items-center">
-              <Text className="text-2xl font-bold text-hika-darkgreen">{Math.floor((profile?.totalTime || 0) / 3600)}h</Text>
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {Math.floor((profile?.totalTime || 0) / 3600)}h
+              </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Social Stats */}
+        <View className="bg-gray-50 rounded-lg p-4 mb-4">
+          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">
+            Social
+          </Text>
+          <View className="flex-row justify-around">
+            <TouchableOpacity
+              onPress={() => setShowFollowingList(true)}
+              className="items-center"
+            >
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {profile?.following?.length || 0}
+              </Text>
+              <Text className="text-gray-600 text-sm">Following</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowersList(true)}
+              className="items-center"
+            >
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {profile?.followers?.length || 0}
+              </Text>
+              <Text className="text-gray-600 text-sm">Followers</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Rank & Progress */}
         {profile && (
           <View className="bg-gray-50 rounded-lg p-4 mb-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-3">Rank & Progress</Text>
+            <Text className="text-lg font-semibold text-gray-900 mb-3">
+              Rank & Progress
+            </Text>
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center">
                 {(() => {
-                  const currentRank = (profile.rank || 'Copper') as UserRank;
+                  const currentRank = (profile.rank || "Copper") as UserRank;
                   const rankVisuals = getRankVisuals(currentRank);
                   return (
-                    <View 
-                      style={[styles.rankBadge, { backgroundColor: rankVisuals.bgColor }]}
+                    <View
+                      style={[
+                        styles.rankBadge,
+                        { backgroundColor: rankVisuals.bgColor },
+                      ]}
                       className="flex-row items-center px-3 py-2 rounded-full mr-3"
                     >
-                      <Ionicons name={rankVisuals.icon} size={24} color={rankVisuals.color} />
-                      <Text className="text-lg font-bold ml-2" style={{ color: rankVisuals.color }}>
+                      <Ionicons
+                        name={rankVisuals.icon}
+                        size={24}
+                        color={rankVisuals.color}
+                      />
+                      <Text
+                        className="text-lg font-bold ml-2"
+                        style={{ color: rankVisuals.color }}
+                      >
                         {currentRank}
                       </Text>
                     </View>
                   );
                 })()}
               </View>
-              <Text className="text-gray-600 font-medium">{(profile.xp || 0).toLocaleString()} XP</Text>
+              <Text className="text-gray-600 font-medium">
+                {(profile.xp || 0).toLocaleString()} XP
+              </Text>
             </View>
-            
+
             {/* XP Progress Bar */}
             {(() => {
-              const progress = getXPProgress(profile.xp || 0, (profile.rank || 'Copper') as UserRank);
+              const progress = getXPProgress(
+                profile.xp || 0,
+                (profile.rank || "Copper") as UserRank
+              );
               return (
                 <View>
                   <View style={styles.progressBarContainer}>
-                    <View 
+                    <View
                       style={[
-                        styles.progressBarFill, 
-                        { width: `${progress.progressPercent}%` }
-                      ]} 
+                        styles.progressBarFill,
+                        { width: `${progress.progressPercent}%` },
+                      ]}
                     />
                   </View>
                   <View className="flex-row justify-between mt-2">
@@ -449,30 +606,46 @@ const RemoteProfile = () => {
                       {progress.rankMin.toLocaleString()} XP
                     </Text>
                     <Text className="text-xs text-gray-500">
-                      {progress.rankMax === Infinity ? '∞' : progress.rankMax.toLocaleString()} XP
+                      {progress.rankMax === Infinity
+                        ? "∞"
+                        : progress.rankMax.toLocaleString()}{" "}
+                      XP
                     </Text>
                   </View>
-                  {progress.nextRank && progress.xpNeededForNextRank !== null && (
-                    <View className="mt-3 pt-3 border-t border-gray-200">
-                      <View className="flex-row items-center mb-1">
-                        <Text className="text-sm text-gray-700 mr-2">Next Rank:</Text>
-                        {(() => {
-                          const nextRankVisuals = getRankVisuals(progress.nextRank!);
-                          return (
-                            <View className="flex-row items-center">
-                              <Ionicons name={nextRankVisuals.icon} size={16} color={nextRankVisuals.color} />
-                              <Text className="text-sm font-semibold ml-1" style={{ color: nextRankVisuals.color }}>
-                                {progress.nextRank}
-                              </Text>
-                            </View>
-                          );
-                        })()}
+                  {progress.nextRank &&
+                    progress.xpNeededForNextRank !== null && (
+                      <View className="mt-3 pt-3 border-t border-gray-200">
+                        <View className="flex-row items-center mb-1">
+                          <Text className="text-sm text-gray-700 mr-2">
+                            Next Rank:
+                          </Text>
+                          {(() => {
+                            const nextRankVisuals = getRankVisuals(
+                              progress.nextRank!
+                            );
+                            return (
+                              <View className="flex-row items-center">
+                                <Ionicons
+                                  name={nextRankVisuals.icon}
+                                  size={16}
+                                  color={nextRankVisuals.color}
+                                />
+                                <Text
+                                  className="text-sm font-semibold ml-1"
+                                  style={{ color: nextRankVisuals.color }}
+                                >
+                                  {progress.nextRank}
+                                </Text>
+                              </View>
+                            );
+                          })()}
+                        </View>
+                        <Text className="text-sm text-green-600 font-medium">
+                          {progress.xpNeededForNextRank.toLocaleString()} XP
+                          needed
+                        </Text>
                       </View>
-                      <Text className="text-sm text-green-600 font-medium">
-                        {progress.xpNeededForNextRank.toLocaleString()} XP needed
-                      </Text>
-                    </View>
-                  )}
+                    )}
                   {!progress.nextRank && (
                     <View className="mt-3 pt-3 border-t border-gray-200">
                       <Text className="text-sm text-gray-600 font-medium">
@@ -485,7 +658,12 @@ const RemoteProfile = () => {
             })()}
           </View>
         )}
-        
+
+        {isOwn && (
+          <View className="mb-4">
+            <PostComposer />
+          </View>
+        )}
 
         {/* Favorites */}
         <View className="mb-6">
@@ -495,15 +673,17 @@ const RemoteProfile = () => {
           >
             <View className="flex-row items-center">
               <Ionicons name="heart" size={20} color="#EF4444" />
-              <Text className="text-gray-900 font-semibold ml-2">Favorites ({profile?.favorites?.length || 0})</Text>
+              <Text className="text-gray-900 font-semibold ml-2">
+                Favorites ({profile?.favorites?.length || 0})
+              </Text>
             </View>
-            <Ionicons 
-              name={showFavorites ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#6B7280" 
+            <Ionicons
+              name={showFavorites ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6B7280"
             />
           </TouchableOpacity>
-          
+
           {showFavorites && (
             <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
               {loadingFavorites ? (
@@ -512,7 +692,9 @@ const RemoteProfile = () => {
                 </View>
               ) : favoriteTrails.length === 0 ? (
                 <View className="p-4 bg-white">
-                  <Text className="text-gray-500 text-center">No favorite trails yet.</Text>
+                  <Text className="text-gray-500 text-center">
+                    No favorite trails yet.
+                  </Text>
                 </View>
               ) : (
                 favoriteTrails.map((trail) => (
@@ -523,15 +705,27 @@ const RemoteProfile = () => {
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        <Text className="text-gray-900 font-medium">
+                          {trail.name}
+                        </Text>
                         {trail.location && (
                           <View className="flex-row items-center mt-1">
-                            <Ionicons name="location" size={12} color="#6B7280" />
-                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                            <Ionicons
+                              name="location"
+                              size={12}
+                              color="#6B7280"
+                            />
+                            <Text className="text-gray-600 text-xs ml-1">
+                              {trail.location}
+                            </Text>
                           </View>
                         )}
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color="#9CA3AF"
+                      />
                     </View>
                   </TouchableOpacity>
                 ))
@@ -548,15 +742,17 @@ const RemoteProfile = () => {
           >
             <View className="flex-row items-center">
               <Ionicons name="bookmark" size={20} color="#3B82F6" />
-              <Text className="text-gray-900 font-semibold ml-2">Wishlist ({profile?.wishlist?.length || 0})</Text>
+              <Text className="text-gray-900 font-semibold ml-2">
+                Wishlist ({profile?.wishlist?.length || 0})
+              </Text>
             </View>
-            <Ionicons 
-              name={showWishlist ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#6B7280" 
+            <Ionicons
+              name={showWishlist ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6B7280"
             />
           </TouchableOpacity>
-          
+
           {showWishlist && (
             <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
               {loadingWishlist ? (
@@ -565,7 +761,9 @@ const RemoteProfile = () => {
                 </View>
               ) : wishlistTrails.length === 0 ? (
                 <View className="p-4 bg-white">
-                  <Text className="text-gray-500 text-center">No trails in wishlist yet.</Text>
+                  <Text className="text-gray-500 text-center">
+                    No trails in wishlist yet.
+                  </Text>
                 </View>
               ) : (
                 wishlistTrails.map((trail) => (
@@ -576,15 +774,27 @@ const RemoteProfile = () => {
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        <Text className="text-gray-900 font-medium">
+                          {trail.name}
+                        </Text>
                         {trail.location && (
                           <View className="flex-row items-center mt-1">
-                            <Ionicons name="location" size={12} color="#6B7280" />
-                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                            <Ionicons
+                              name="location"
+                              size={12}
+                              color="#6B7280"
+                            />
+                            <Text className="text-gray-600 text-xs ml-1">
+                              {trail.location}
+                            </Text>
                           </View>
                         )}
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color="#9CA3AF"
+                      />
                     </View>
                   </TouchableOpacity>
                 ))
@@ -601,15 +811,17 @@ const RemoteProfile = () => {
           >
             <View className="flex-row items-center">
               <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-              <Text className="text-gray-900 font-semibold ml-2">Completed Trails ({profile?.completed?.length || 0})</Text>
+              <Text className="text-gray-900 font-semibold ml-2">
+                Completed Trails ({profile?.completed?.length || 0})
+              </Text>
             </View>
-            <Ionicons 
-              name={showCompleted ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#6B7280" 
+            <Ionicons
+              name={showCompleted ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6B7280"
             />
           </TouchableOpacity>
-          
+
           {showCompleted && (
             <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
               {loadingCompleted ? (
@@ -618,7 +830,9 @@ const RemoteProfile = () => {
                 </View>
               ) : completedTrails.length === 0 ? (
                 <View className="p-4 bg-white">
-                  <Text className="text-gray-500 text-center">No completed trails yet.</Text>
+                  <Text className="text-gray-500 text-center">
+                    No completed trails yet.
+                  </Text>
                 </View>
               ) : (
                 completedTrails.map((trail) => (
@@ -629,15 +843,27 @@ const RemoteProfile = () => {
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        <Text className="text-gray-900 font-medium">
+                          {trail.name}
+                        </Text>
                         {trail.location && (
                           <View className="flex-row items-center mt-1">
-                            <Ionicons name="location" size={12} color="#6B7280" />
-                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                            <Ionicons
+                              name="location"
+                              size={12}
+                              color="#6B7280"
+                            />
+                            <Text className="text-gray-600 text-xs ml-1">
+                              {trail.location}
+                            </Text>
                           </View>
                         )}
                       </View>
-                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color="#9CA3AF"
+                      />
                     </View>
                   </TouchableOpacity>
                 ))
@@ -646,21 +872,57 @@ const RemoteProfile = () => {
           )}
         </View>
 
+
         {/* Posts */}
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-white mb-2">
-            Posts
-          </Text>
+          <Text className="text-lg font-semibold text-white mb-2">Posts</Text>
           {loadingPosts ? (
             <Text className="text-gray-500">Loading posts...</Text>
           ) : posts.length === 0 ? (
             <Text className="text-gray-500">No posts yet.</Text>
           ) : (
-            posts.map((p) => (
-              <PostCard key={p.id} post={p} />
-            ))
+            posts
+              .filter((p) => p.id !== "DELETED")
+              .map((p) => (
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  onUpdate={(updatedPost) => {
+                    // Handle post deletion
+                    if (updatedPost && updatedPost.id === "DELETED") {
+                      setPosts((prev) =>
+                        prev.filter((post) => post.id !== p.id)
+                      );
+                    } else if (updatedPost) {
+                      setPosts((prev) =>
+                        prev.map((post) =>
+                          post.id === p.id ? updatedPost : post
+                        )
+                      );
+                    }
+                  }}
+                />
+              ))
           )}
         </View>
+
+        {/* Following List Modal */}
+        {uid && (
+          <FollowingList
+            visible={showFollowingList}
+            userId={uid as string}
+            onClose={() => setShowFollowingList(false)}
+          />
+        )}
+
+        {/* Followers List Modal */}
+        {uid && (
+          <FollowersList
+            visible={showFollowersList}
+            userId={uid as string}
+            onClose={() => setShowFollowersList(false)}
+          />
+        )}
       </View>
     </ScrollView>
   );
@@ -669,14 +931,14 @@ const RemoteProfile = () => {
 const styles = StyleSheet.create({
   progressBarContainer: {
     height: 24,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: "#E5E7EB",
     borderRadius: 12,
-    overflow: 'hidden',
-    position: 'relative',
+    overflow: "hidden",
+    position: "relative",
   },
   progressBarFill: {
-    height: '100%',
-    backgroundColor: '#10b981',
+    height: "100%",
+    backgroundColor: "#10b981",
     borderRadius: 12,
     minWidth: 4,
   },
@@ -684,6 +946,55 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 600 : 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
   },
 });
 
