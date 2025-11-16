@@ -288,9 +288,17 @@ const TrailDetail = () => {
           <View className="space-y-3 mb-6">
             <TouchableOpacity
               className="bg-green-500 rounded-lg p-4 flex-row items-center justify-center"
+              activeOpacity={0.8}
               onPress={() => {
-                // TODO: Start trail navigation
-                console.log('Start trail:', trail.id);
+                if (!trail?.id) {
+                  Alert.alert('Error', 'Trail ID is missing');
+                  return;
+                }
+                console.log('Navigating to track screen for trail:', trail.id);
+                router.push({
+                  pathname: '/track',
+                  params: { trailId: trail.id },
+                } as any);
               }}
             >
               <Ionicons name="play" size={20} color="#FFFFFF" />
