@@ -10,7 +10,6 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     if (!loading && user) {
-      // User is already logged in, redirect to home
       router.replace('/(tabs)/home');
     }
   }, [user, loading, router]);
@@ -20,40 +19,48 @@ export default function WelcomeScreen() {
   }
 
   if (user) {
-    return null; // Will redirect
+    return null;
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center px-6">
-        {/* App Logo/Icon */}
-        <View className="mb-8">
-          <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center mb-4">
-            <Text className="text-4xl font-bold text-white">H</Text>
+    <View className="flex-1 bg-hika-green px-6 py-12">
+      <View className="flex-1 items-center justify-between">
+        
+        {/* Header Section */}
+        <View className="items-center mt-28">
+          <Text className="text-5xl font-bold text-black mb-4">Hika</Text>
+          
+          {/* Welcome Quote */}
+          <Text className="text-2xl text-black font-bold text-center mt-10">
+            "Take only pictures,{'\n'}leave only footprints."
+          </Text>
+        </View>
+
+        {/* Create Account Section */}
+        <View className="w-full items-center">
+          <Text className="text-2xl font-semibold text-black mb-6 text-center">
+            Create Your Account
+          </Text>
+
+          {/* Next Button */}
+          <View className="w-full max-w-sm">
+            <Link href="/signup" asChild>
+            <TouchableOpacity className="bg-hika-darkgreen py-4 px-6 rounded-full items-center">
+              <Text className="text-white text-lg font-semibold">Go Forth!</Text>
+            </TouchableOpacity>
+            </Link>
           </View>
         </View>
 
-        {/* App Name */}
-        <Text className="text-4xl font-bold text-gray-900 mb-2">Hika</Text>
-        
-        {/* Description */}
-        <Text className="text-lg text-gray-600 text-center mb-12 max-w-sm">
-          Rate and explore new hiking trails. Connect with friends, track your adventures, and climb the leaderboards.
-        </Text>
+        {/* Illustration Placeholder */}
+        <View className="items-center mb-8">
+            <Image
+              source={require('../assets/images/welcome.png')}
+              style={{ width: 250, height: 250 }}
+              resizeMode="contain"
+            >
 
-        {/* Buttons */}
-        <View className="w-full max-w-sm space-y-4">
-          <Link href="/signup" asChild>
-            <TouchableOpacity className="bg-green-500 py-4 px-6 rounded-lg items-center">
-              <Text className="text-white text-lg font-semibold">Create Account</Text>
-            </TouchableOpacity>
-          </Link>
-
-          <Link href="/login" asChild>
-            <TouchableOpacity className="bg-gray-100 py-4 px-6 rounded-lg items-center border border-gray-300">
-              <Text className="text-gray-900 text-lg font-semibold">Log In</Text>
-            </TouchableOpacity>
-          </Link>
+            </Image>
         </View>
       </View>
     </View>

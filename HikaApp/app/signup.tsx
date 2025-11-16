@@ -44,18 +44,19 @@ export default function SignupScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white px-6 justify-center">
+    <View className="flex-1 bg-hika-green px-6 justify-center">
       <View className="max-w-sm w-full mx-auto">
         {/* Header */}
-        <Text className="text-3xl font-bold text-gray-900 mb-2">Create Account</Text>
-        <Text className="text-gray-600 mb-8">Join Hika and start exploring trails</Text>
+        <Text className="text-3xl font-bold text-black mb-2">Create Account</Text>
+        <Text className="text-black mb-8">Join Hika and start exploring trails</Text>
 
         {/* Display Name Input */}
         <View className="mb-4">
-          <Text className="text-gray-700 mb-2 font-medium">Display Name</Text>
+          <Text className="text-black mb-2 font-medium">Display Name</Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            className="border border-black rounded-lg px-4 py-3 text-black bg-white"
             placeholder="Enter your display name"
+            placeholderTextColor="black"
             value={displayName}
             onChangeText={setDisplayName}
             autoCapitalize="words"
@@ -65,10 +66,11 @@ export default function SignupScreen() {
 
         {/* Email Input */}
         <View className="mb-4">
-          <Text className="text-gray-700 mb-2 font-medium">Email</Text>
+          <Text className="text-black mb-2 font-medium">Email</Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            className="border border-black rounded-lg px-4 py-3 text-base bg-white"
             placeholder="Enter your email"
+            placeholderTextColor="black"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -79,10 +81,11 @@ export default function SignupScreen() {
 
         {/* Password Input */}
         <View className="mb-6">
-          <Text className="text-gray-700 mb-2 font-medium">Password</Text>
+          <Text className="text-black mb-2 font-medium">Password</Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            className="border border-black-300 rounded-lg px-4 py-3 text-base bg-white"
             placeholder="Enter your password (min. 6 characters)"
+            placeholderTextColor="black"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -93,7 +96,7 @@ export default function SignupScreen() {
 
         {/* Sign Up Button */}
         <TouchableOpacity
-          className="bg-green-500 py-4 px-6 rounded-lg items-center mb-4"
+          className="bg-hika-darkgreen py-4 px-6 rounded-lg items-center mb-4"
           onPress={handleSignUp}
           disabled={loading}
         >
@@ -106,10 +109,10 @@ export default function SignupScreen() {
 
         {/* Login Link */}
         <View className="flex-row justify-center items-center">
-          <Text className="text-gray-600">Already have an account? </Text>
+          <Text className="text-black">Already have an account? </Text>
           <Link href="/login" asChild>
             <TouchableOpacity>
-              <Text className="text-green-500 font-semibold">Log In</Text>
+              <Text className="text-black font-semibold">Log In</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -118,7 +121,7 @@ export default function SignupScreen() {
         <View className="mt-6">
           <Link href="/welcome" asChild>
             <TouchableOpacity>
-              <Text className="text-gray-500 text-center">Back to Welcome</Text>
+              <Text className="text-black text-center">Back to Welcome</Text>
             </TouchableOpacity>
           </Link>
         </View>

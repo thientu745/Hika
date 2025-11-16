@@ -38,18 +38,19 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white px-6 justify-center">
+    <View className="flex-1 bg-hika-green px-6 justify-center">
       <View className="max-w-sm w-full mx-auto">
         {/* Header */}
-        <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</Text>
-        <Text className="text-gray-600 mb-8">Sign in to continue your hiking journey</Text>
+        <Text className="text-3xl font-bold text-black mb-2">Welcome Back</Text>
+        <Text className="text-black mb-8">Sign in to continue your hiking journey</Text>
 
         {/* Email Input */}
         <View className="mb-4">
-          <Text className="text-gray-700 mb-2 font-medium">Email</Text>
+          <Text className="text-black mb-2 font-medium">Email</Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            className="border border-black rounded-lg px-4 py-3 text-black bg-white"
             placeholder="Enter your email"
+            placeholderTextColor="#9CA3AF"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -60,10 +61,11 @@ export default function LoginScreen() {
 
         {/* Password Input */}
         <View className="mb-6">
-          <Text className="text-gray-700 mb-2 font-medium">Password</Text>
+          <Text className="text-black mb-2 font-medium">Password</Text>
           <TextInput
-            className="border border-gray-300 rounded-lg px-4 py-3 text-base"
+            className="border border-black rounded-lg px-4 py-3 text-black bg-white"
             placeholder="Enter your password"
+            placeholderTextColor="#9CA3AF"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -74,7 +76,7 @@ export default function LoginScreen() {
 
         {/* Login Button */}
         <TouchableOpacity
-          className="bg-green-500 py-4 px-6 rounded-lg items-center mb-4"
+          className="bg-hika-darkgreen py-4 px-6 rounded-lg items-center mb-4"
           onPress={handleLogin}
           disabled={loading}
         >
@@ -87,10 +89,10 @@ export default function LoginScreen() {
 
         {/* Sign Up Link */}
         <View className="flex-row justify-center items-center">
-          <Text className="text-gray-600">Don't have an account? </Text>
+          <Text className="text-black">Don't have an account? </Text>
           <Link href="/signup" asChild>
             <TouchableOpacity>
-              <Text className="text-green-500 font-semibold">Sign Up</Text>
+              <Text className="text-black font-bold">Sign Up</Text>
             </TouchableOpacity>
           </Link>
         </View>
@@ -99,7 +101,7 @@ export default function LoginScreen() {
         <View className="mt-6">
           <Link href="/welcome" asChild>
             <TouchableOpacity>
-              <Text className="text-gray-500 text-center">Back to Welcome</Text>
+              <Text className="text-black text-center">Back to Welcome</Text>
             </TouchableOpacity>
           </Link>
         </View>
