@@ -682,6 +682,25 @@ export const incrementPostShares = async (postId: string): Promise<void> => {
   });
 };
 
+/**
+ * Update a post
+ */
+export const updatePost = async (postId: string, updates: Partial<Post>): Promise<void> => {
+  const postRef = doc(db, 'posts', postId);
+  await updateDoc(postRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+/**
+ * Delete a post
+ */
+export const deletePost = async (postId: string): Promise<void> => {
+  const postRef = doc(db, 'posts', postId);
+  await deleteDoc(postRef);
+};
+
 // ==================== Achievement Operations ====================
 
 /**

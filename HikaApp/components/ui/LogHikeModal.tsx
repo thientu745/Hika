@@ -3,6 +3,7 @@ import { View, Text, TextInput, Modal, TouchableOpacity, ScrollView, Platform, S
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from './Button';
+import { HikeCelebrationModal } from './HikeCelebrationModal';
 import { createPost, addTrailToList, updateUserStatsFromHike } from '../../services/database';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Trail } from '../../types';
@@ -30,6 +31,8 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [xpGained, setXpGained] = useState(0);
 
   // Format date for display
   const formatDate = (date: Date): string => {
@@ -143,6 +146,18 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
         }
       );
 
+      // Calculate XP gained before updating stats
+      let calculatedXpGained = 10; // Base XP for completing a hike
+      if (finalDistance !== undefined && finalDistance > 0) {
+        calculatedXpGained += Math.floor(finalDistance / 100);
+      }
+      if (finalTime !== undefined && finalTime > 0) {
+        calculatedXpGained += Math.floor(finalTime / 600);
+      }
+      if (finalElevationGain !== undefined && finalElevationGain > 0) {
+        calculatedXpGained += Math.floor(finalElevationGain / 10);
+      }
+
       // Update user stats
       if (user) {
         try {
@@ -152,6 +167,9 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
             finalTime,
             finalElevationGain
           );
+          // Show celebration modal after successful update
+          setXpGained(calculatedXpGained);
+          setShowCelebration(true);
         } catch (e) {
           console.warn('Failed to update user stats:', e);
           // Don't fail the post creation if this fails
@@ -168,19 +186,8 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
         }
       }
 
-      // Reset form
-      setDescription('');
-      setDistance('');
-      setElevationGain('');
-      setTime('');
-      setHikeDate(new Date());
-      setUseAutoStats(true);
-      setError(null);
-
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
+      // Don't close modal yet - wait for celebration
+      // Reset form will happen after celebration closes
     } catch (e) {
       console.error('Failed to log hike:', e);
       setError('Failed to log hike. Please try again.');
@@ -417,6 +424,29 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
           <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom} />
         </View>
       </View>
+
+      {/* Celebration Modal */}
+      {user && (
+        <HikeCelebrationModal
+          visible={showCelebration}
+          onClose={() => {
+            setShowCelebration(false);
+            // Reset form and close modal after celebration
+            setDescription('');
+            setDistance('');
+            setElevationGain('');
+            setTime('');
+            setHikeDate(new Date());
+            setUseAutoStats(true);
+            setError(null);
+            onClose();
+            if (onSuccess) onSuccess();
+          }}
+          xpGained={xpGained}
+          userId={user.uid}
+          trailName={trail.name}
+        />
+      )}
     </Modal>
   );
 };
