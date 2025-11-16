@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert, Modal, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,8 +7,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { PostComposer } from '../../components/ui/PostComposer';
 import { PostCard } from '../../components/ui/PostCard';
-import { getUserPosts, getTrail } from '../../services/database';
-import type { Post, Trail, UserRank } from '../../types';
+import { getUserPosts, getTrail, getUserProfiles } from '../../services/database';
+import type { Post, Trail, UserRank, UserProfile } from '../../types';
 
 // Rank thresholds
 const RANK_THRESHOLDS: Record<UserRank, { min: number; max: number; next?: UserRank }> = {
@@ -75,6 +76,8 @@ const Profile = () => {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
   
   // Trail lists
   const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
@@ -84,6 +87,12 @@ const Profile = () => {
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [uploading, setUploading] = useState(false);
+  
+  // Social lists
+  const [followersList, setFollowersList] = useState<UserProfile[]>([]);
+  const [followingList, setFollowingList] = useState<UserProfile[]>([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -155,6 +164,8 @@ const Profile = () => {
   const favorites = userProfile?.favorites || [];
   const completed = userProfile?.completed || [];
   const wishlist = userProfile?.wishlist || [];
+  const followers = userProfile?.followers || [];
+  const following = userProfile?.following || [];
 
   // Load user posts (must be before early returns)
   useEffect(() => {
@@ -271,6 +282,54 @@ const Profile = () => {
     loadCompletedTrails();
   }, [showCompleted, completed]);
 
+  // Load followers when modal opens (must be before early returns)
+  useEffect(() => {
+    if (!showFollowers || followers.length === 0) {
+      if (!showFollowers) {
+        setFollowersList([]);
+      }
+      return;
+    }
+
+    const loadFollowers = async () => {
+      setLoadingFollowers(true);
+      try {
+        const profiles = await getUserProfiles(followers);
+        setFollowersList(profiles);
+      } catch (err) {
+        console.error('Error loading followers:', err);
+      } finally {
+        setLoadingFollowers(false);
+      }
+    };
+
+    loadFollowers();
+  }, [showFollowers, followers]);
+
+  // Load following when modal opens (must be before early returns)
+  useEffect(() => {
+    if (!showFollowing || following.length === 0) {
+      if (!showFollowing) {
+        setFollowingList([]);
+      }
+      return;
+    }
+
+    const loadFollowing = async () => {
+      setLoadingFollowing(true);
+      try {
+        const profiles = await getUserProfiles(following);
+        setFollowingList(profiles);
+      } catch (err) {
+        console.error('Error loading following:', err);
+      } finally {
+        setLoadingFollowing(false);
+      }
+    };
+
+    loadFollowing();
+  }, [showFollowing, following]);
+
   // Redirect to welcome if not authenticated (after all hooks)
   if (!loading && !user) {
     return <Redirect href="/welcome" />;
@@ -327,6 +386,25 @@ const Profile = () => {
             </View>
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-gray-900">{displayName}</Text>
+          
+          {/* Followers & Following Stats (Instagram style) */}
+          <View className="flex-row items-center justify-center mt-4 mb-2">
+            <TouchableOpacity
+              onPress={() => setShowFollowers(true)}
+              className="items-center mx-4"
+            >
+              <Text className="text-xl font-bold text-gray-900">{followers.length}</Text>
+              <Text className="text-sm text-gray-600 mt-1">Followers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowing(true)}
+              className="items-center mx-4"
+            >
+              <Text className="text-xl font-bold text-gray-900">{following.length}</Text>
+              <Text className="text-sm text-gray-600 mt-1">Following</Text>
+            </TouchableOpacity>
+          </View>
+
           {!userProfile && (
             <Text className="text-gray-500 text-sm mt-2">Loading profile data...</Text>
           )}
@@ -610,6 +688,162 @@ const Profile = () => {
           )}
         </View>
 
+        {/* Followers Modal */}
+        <Modal
+          visible={showFollowers}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowFollowers(false)}
+          statusBarTranslucent={Platform.OS !== 'web'}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={styles.backdrop}
+              activeOpacity={1}
+              onPress={() => setShowFollowers(false)}
+            />
+            <View style={styles.modalContentWrapper}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalHeaderText}>Followers</Text>
+                  <TouchableOpacity onPress={() => setShowFollowers(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close" size={24} color="#1F2937" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView 
+                  style={styles.modalScrollView}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={true}
+                >
+                  {loadingFollowers ? (
+                    <View className="py-8 items-center">
+                      <ActivityIndicator size="small" color="#10b981" />
+                    </View>
+                  ) : followersList.length === 0 ? (
+                    <View className="p-4">
+                      <Text className="text-gray-500 text-center">No followers yet.</Text>
+                    </View>
+                  ) : (
+                    followersList.map((follower) => (
+                      <TouchableOpacity
+                        key={follower.uid}
+                        onPress={() => {
+                          setShowFollowers(false);
+                          router.push(`/profile/${follower.uid}` as any);
+                        }}
+                        className="px-4 py-3 border-b border-gray-100 flex-row items-center"
+                      >
+                        {follower.profilePictureUrl ? (
+                          <Image
+                            source={{ uri: follower.profilePictureUrl }}
+                            style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB' }}
+                            contentFit="cover"
+                            className="mr-3"
+                          />
+                        ) : (
+                          <View className="w-10 h-10 bg-green-500 rounded-full items-center justify-center mr-3">
+                            <Text className="text-white font-bold text-sm">
+                              {follower.displayName?.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                        <View className="flex-1">
+                          <Text className="text-gray-900 font-medium">{follower.displayName}</Text>
+                          {follower.bio && (
+                            <Text className="text-gray-500 text-xs mt-1" numberOfLines={1}>
+                              {follower.bio}
+                            </Text>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
+              <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom} />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Following Modal */}
+        <Modal
+          visible={showFollowing}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowFollowing(false)}
+          statusBarTranslucent={Platform.OS !== 'web'}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={styles.backdrop}
+              activeOpacity={1}
+              onPress={() => setShowFollowing(false)}
+            />
+            <View style={styles.modalContentWrapper}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalHeaderText}>Following</Text>
+                  <TouchableOpacity onPress={() => setShowFollowing(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close" size={24} color="#1F2937" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView 
+                  style={styles.modalScrollView}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={true}
+                >
+                  {loadingFollowing ? (
+                    <View className="py-8 items-center">
+                      <ActivityIndicator size="small" color="#10b981" />
+                    </View>
+                  ) : followingList.length === 0 ? (
+                    <View className="p-4">
+                      <Text className="text-gray-500 text-center">Not following anyone yet.</Text>
+                    </View>
+                  ) : (
+                    followingList.map((followedUser) => (
+                      <TouchableOpacity
+                        key={followedUser.uid}
+                        onPress={() => {
+                          setShowFollowing(false);
+                          router.push(`/profile/${followedUser.uid}` as any);
+                        }}
+                        className="px-4 py-3 border-b border-gray-100 flex-row items-center"
+                      >
+                        {followedUser.profilePictureUrl ? (
+                          <Image
+                            source={{ uri: followedUser.profilePictureUrl }}
+                            style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#E5E7EB' }}
+                            contentFit="cover"
+                            className="mr-3"
+                          />
+                        ) : (
+                          <View className="w-10 h-10 bg-green-500 rounded-full items-center justify-center mr-3">
+                            <Text className="text-white font-bold text-sm">
+                              {followedUser.displayName?.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                        <View className="flex-1">
+                          <Text className="text-gray-900 font-medium">{followedUser.displayName}</Text>
+                          {followedUser.bio && (
+                            <Text className="text-gray-500 text-xs mt-1" numberOfLines={1}>
+                              {followedUser.bio}
+                            </Text>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
+              <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom} />
+            </View>
+          </View>
+        </Modal>
+
         {/* Posts */}
         <View className="mb-6">
           <Text className="text-lg font-semibold text-gray-900 mb-3">My Posts</Text>
@@ -663,6 +897,55 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 600 : 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
   },
 });
 

@@ -90,6 +90,41 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 };
 
 /**
+ * Get multiple user profiles by UIDs
+ */
+export const getUserProfiles = async (uids: string[]): Promise<UserProfile[]> => {
+  if (uids.length === 0) return [];
+
+  const profiles: UserProfile[] = [];
+  
+  // Firestore 'in' query has a limit of 10, so we need to chunk
+  const chunks: string[][] = [];
+  for (let i = 0; i < uids.length; i += 10) {
+    chunks.push(uids.slice(i, i + 10));
+  }
+
+  // Fetch each chunk
+  for (const chunk of chunks) {
+    const userRefs = chunk.map((uid) => doc(db, 'users', uid));
+    const userSnaps = await Promise.all(userRefs.map((ref) => getDoc(ref)));
+    
+    userSnaps.forEach((snap, index) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        profiles.push({
+          uid: snap.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as UserProfile);
+      }
+    });
+  }
+
+  return profiles;
+};
+
+/**
  * Update user profile
  */
 export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>): Promise<void> => {
