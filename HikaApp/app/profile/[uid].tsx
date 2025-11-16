@@ -28,7 +28,6 @@ import { FollowingList } from "../../components/ui/FollowingList";
 import { FollowersList } from "../../components/ui/FollowersList";
 import { Image } from "expo-image";
 import { getRankBorderStyle } from "../../utils/rankStyles";
-import { PostComposer } from "../../components/ui/PostComposer";
 import type { Post, UserProfile, Trail, UserRank } from "../../types";
 
 // Rank thresholds
@@ -660,12 +659,6 @@ const RemoteProfile = () => {
                 </View>
               );
             })()}
-          </View>
-        )}
-
-        {isOwn && (
-          <View className="mb-4">
-            <PostComposer />
           </View>
         )}
 
