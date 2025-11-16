@@ -1,4 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  TextInput,
+} from "react-native";
 import React, { useState, useEffect, useRef } from "react";
 import { Redirect, useRouter, Link } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
@@ -7,8 +14,9 @@ import { Input } from "../../components/ui/Input";
 import { PostCard } from "../../components/ui/PostCard";
 import { searchUsers, subscribeToFeedPosts } from "../../services/database";
 import { Image } from "expo-image";
+import { getRankBorderStyle } from "../../utils/rankStyles";
 
-import type { UserProfile, Post } from "../../types";
+import type { UserProfile, Post, UserRank } from "../../types";
 
 const Home = () => {
   const { user, userProfile, loading } = useAuth();
@@ -56,8 +64,10 @@ const Home = () => {
   // Load feed posts for followed users (real-time with onSnapshot)
   useEffect(() => {
     const following = (userProfile?.following || []) as string[];
-    const ids = Array.from(new Set([...(following || []), user?.uid].filter(Boolean))) as string[];
-    
+    const ids = Array.from(
+      new Set([...(following || []), user?.uid].filter(Boolean))
+    ) as string[];
+
     if (ids.length === 0) {
       setFeedPosts([]);
       setLoadingFeed(false);
@@ -65,12 +75,16 @@ const Home = () => {
     }
 
     setLoadingFeed(true);
-    
+
     // Subscribe to real-time feed updates
-    const unsubscribe = subscribeToFeedPosts(ids, (posts) => {
-      setFeedPosts(posts);
-      setLoadingFeed(false);
-    }, 50);
+    const unsubscribe = subscribeToFeedPosts(
+      ids,
+      (posts) => {
+        setFeedPosts(posts);
+        setLoadingFeed(false);
+      },
+      50
+    );
 
     // Unsubscribe on unmount or when following list changes
     return () => {
@@ -84,15 +98,21 @@ const Home = () => {
     setRefreshing(true);
     // Trigger a manual re-subscription of the feed
     const following = (userProfile?.following || []) as string[];
-    const ids = Array.from(new Set([...(following || []), user?.uid].filter(Boolean))) as string[];
-    
+    const ids = Array.from(
+      new Set([...(following || []), user?.uid].filter(Boolean))
+    ) as string[];
+
     if (ids.length > 0) {
       // Re-subscribe to get latest posts
-      const unsubscribe = subscribeToFeedPosts(ids, (posts) => {
-        setFeedPosts(posts);
-        setRefreshing(false);
-      }, 50);
-      
+      const unsubscribe = subscribeToFeedPosts(
+        ids,
+        (posts) => {
+          setFeedPosts(posts);
+          setRefreshing(false);
+        },
+        50
+      );
+
       // Clean up after a short delay to ensure data is loaded
       setTimeout(() => {
         try {
@@ -116,7 +136,9 @@ const Home = () => {
   return (
     <ScrollView
       className="flex-1 bg-hika-darkgreen"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
       <View className="px-4 py-6">
         {/* People search */}
@@ -139,19 +161,45 @@ const Home = () => {
                   {u.profilePictureUrl ? (
                     <Image
                       source={{ uri: u.profilePictureUrl }}
-                      style={{ width: 42, height: 42, borderRadius: 24, borderWidth: 2, borderColor: '#E5E7EB' }}
+                      style={[
+                        {
+                          width: 42,
+                          height: 42,
+                          borderRadius: 21,
+                        },
+                        getRankBorderStyle((u.rank || "Copper") as UserRank),
+                      ]}
                       contentFit="cover"
                       className="mr-4"
                     />
                   ) : (
-                    <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center mr-01">
-                      <Text className="text-white font-bold">{u.displayName?.charAt(0).toUpperCase()}</Text>
+                    <View
+                      style={[
+                        {
+                          width: 42,
+                          height: 42,
+                          borderRadius: 21,
+                          backgroundColor: "#10b981",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        },
+                        getRankBorderStyle((u.rank || "Copper") as UserRank),
+                      ]}
+                      className="mr-4"
+                    >
+                      <Text className="text-white font-bold">
+                        {u.displayName?.charAt(0).toUpperCase()}
+                      </Text>
                     </View>
                   )}
                   <View className="flex-1">
-                    <Text className="text-white font-medium ml-3">{u.displayName}</Text>
+                    <Text className="text-white font-medium ml-3">
+                      {u.displayName}
+                    </Text>
                     {(u as any).username ? (
-                      <Text className="text-gray-500 text-sm">@{(u as any).username}</Text>
+                      <Text className="text-gray-500 text-sm">
+                        @{(u as any).username}
+                      </Text>
                     ) : null}
                   </View>
                 </TouchableOpacity>
@@ -163,15 +211,33 @@ const Home = () => {
         {/* Composer removed from Home - posts are created on your profile page only */}
 
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-white mb-2">Feed</Text>
           {loadingFeed ? (
             <Text className="text-gray-500">Loading feed...</Text>
           ) : feedPosts.length === 0 ? (
             <Text className="text-gray-500">No posts yet.</Text>
           ) : (
-            feedPosts.map((p) => (
-              <PostCard key={p.id} post={p} />
-            ))
+            feedPosts
+              .filter((p) => p.id !== "DELETED")
+              .map((p) => (
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  onUpdate={(updatedPost) => {
+                    // Handle post deletion
+                    if (updatedPost && updatedPost.id === "DELETED") {
+                      setFeedPosts((prev) =>
+                        prev.filter((post) => post.id !== p.id)
+                      );
+                    } else if (updatedPost) {
+                      setFeedPosts((prev) =>
+                        prev.map((post) =>
+                          post.id === p.id ? updatedPost : post
+                        )
+                      );
+                    }
+                  }}
+                />
+              ))
           )}
         </View>
       </View>

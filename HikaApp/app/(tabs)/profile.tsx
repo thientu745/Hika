@@ -15,6 +15,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
 import { PostComposer } from "../../components/ui/PostComposer";
 import { PostCard } from "../../components/ui/PostCard";
+import { FollowingList } from "../../components/ui/FollowingList";
+import { FollowersList } from "../../components/ui/FollowersList";
 import {
   getUserPosts,
   getTrail,
@@ -22,6 +24,7 @@ import {
   updateUserProfile,
 } from "../../services/database";
 import { pickImage, uploadProfilePicture } from "../../services/storage";
+import { getRankBorderStyle } from "../../utils/rankStyles";
 import type { Post, Trail, UserRank } from "../../types";
 
 // Rank thresholds
@@ -135,6 +138,8 @@ const Profile = () => {
   const [loadingCompleted, setLoadingCompleted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [removingTrail, setRemovingTrail] = useState<string | null>(null);
+  const [showFollowingList, setShowFollowingList] = useState(false);
+  const [showFollowersList, setShowFollowersList] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -440,21 +445,36 @@ const Profile = () => {
             activeOpacity={0.7}
           >
             {profilePictureUrl ? (
-              <Image
-                source={{ uri: profilePictureUrl }}
-                style={{
-                  width: 96,
-                  height: 96,
-                  borderRadius: 48,
-                  borderWidth: 2,
-                  borderColor: "#E5E7EB",
-                }}
-                contentFit="cover"
-                key={profilePictureUrl}
-                cachePolicy="memory-disk"
-              />
+              <View>
+                <Image
+                  source={{ uri: profilePictureUrl }}
+                  style={[
+                    {
+                      width: 96,
+                      height: 96,
+                      borderRadius: 48,
+                    },
+                    getRankBorderStyle((userProfile?.rank || 'Copper') as UserRank),
+                  ]}
+                  contentFit="cover"
+                  key={profilePictureUrl}
+                  cachePolicy="memory-disk"
+                />
+              </View>
             ) : (
-              <View className="w-24 h-24 bg-white rounded-full items-center justify-center">
+              <View
+                style={[
+                  {
+                    width: 96,
+                    height: 96,
+                    borderRadius: 48,
+                    backgroundColor: 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                  getRankBorderStyle((userProfile?.rank || 'Copper') as UserRank),
+                ]}
+              >
                 <Text className="text-3xl font-bold text-hika-darkgreen">
                   {displayName.charAt(0).toUpperCase()}
                 </Text>
@@ -495,7 +515,7 @@ const Profile = () => {
         )}
 
         {/* Stats */}
-        <View className="bg-gray-50 rounded-lg p-4 mb-6">
+        <View className="bg-gray-50 rounded-lg p-4 mb-4">
           <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Stats</Text>
           <View className="flex-row justify-between">
             <View className="items-center">
@@ -514,6 +534,31 @@ const Profile = () => {
               </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Social Stats */}
+        <View className="bg-gray-50 rounded-lg p-4 mb-6">
+          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Social</Text>
+          <View className="flex-row justify-around">
+            <TouchableOpacity
+              onPress={() => setShowFollowingList(true)}
+              className="items-center"
+            >
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {userProfile?.following?.length || 0}
+              </Text>
+              <Text className="text-gray-600 text-sm">Following</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowersList(true)}
+              className="items-center"
+            >
+              <Text className="text-2xl font-bold text-hika-darkgreen">
+                {userProfile?.followers?.length || 0}
+              </Text>
+              <Text className="text-gray-600 text-sm">Followers</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -932,7 +977,18 @@ const Profile = () => {
                     new Date(a.createdAt).getTime()
                 )
                 .map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onUpdate={(updatedPost) => {
+                      // Handle post deletion
+                      if (updatedPost && updatedPost.id === 'DELETED') {
+                        setUserPosts(prev => prev.filter(p => p.id !== post.id));
+                      } else if (updatedPost) {
+                        setUserPosts(prev => prev.map(p => p.id === post.id ? updatedPost : p));
+                      }
+                    }}
+                  />
                 ))}
             </View>
           )}
@@ -945,6 +1001,24 @@ const Profile = () => {
         >
           <Text className="text-white font-semibold">Sign Out</Text>
         </TouchableOpacity>
+
+        {/* Following List Modal */}
+        {user?.uid && (
+          <FollowingList
+            visible={showFollowingList}
+            userId={user.uid}
+            onClose={() => setShowFollowingList(false)}
+          />
+        )}
+
+        {/* Followers List Modal */}
+        {user?.uid && (
+          <FollowersList
+            visible={showFollowersList}
+            userId={user.uid}
+            onClose={() => setShowFollowersList(false)}
+          />
+        )}
       </View>
     </ScrollView>
   );
