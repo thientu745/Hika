@@ -25,6 +25,10 @@ export default function RootLayout() {
           options={{ headerShown: false }} 
         />
         <Stack.Screen 
+          name="trail/[id]" 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
           name="profile/[uid]" 
           options={{ headerShown: false }} 
         />
