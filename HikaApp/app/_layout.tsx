@@ -22,6 +22,10 @@ export default function RootLayout() {
           name="signup" 
           options={{ headerShown: false }} 
         />
+        <Stack.Screen 
+          name="trail/[id]" 
+          options={{ headerShown: false }} 
+        />
       </Stack>
     </AuthProvider>
   );

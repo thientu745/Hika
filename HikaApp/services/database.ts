@@ -211,10 +211,49 @@ export const searchTrails = async (
   limitCount: number = 20
 ): Promise<Trail[]> => {
   const trailsRef = collection(db, 'trails');
-  let q = query(trailsRef, orderBy('createdAt', 'desc'), limit(limitCount));
+  let q;
 
-  if (location) {
-    q = query(trailsRef, where('location', '==', location), orderBy('createdAt', 'desc'), limit(limitCount));
+  // Normalize location for matching (handle "Oregon" vs "Oregon, USA")
+  const normalizedLocation = location ? location.trim() : undefined;
+
+  // Build query based on available filters
+  // Note: When we have a search term, we fetch more trails and filter client-side
+  // This ensures we don't miss trails due to exact match requirements in Firestore
+  // For location and difficulty, we do client-side filtering to handle format variations
+  if (searchTerm) {
+    // When searching by name, fetch many trails and filter everything client-side
+    // This ensures we find all matching trails regardless of difficulty/location format
+    let fetchLimit = limitCount * 10;
+    if (normalizedLocation) {
+      fetchLimit = limitCount * 15; // Even more when searching by name + location
+    }
+    q = query(trailsRef, orderBy('createdAt', 'desc'), limit(fetchLimit));
+  } else if (difficulty && normalizedLocation) {
+    // Both difficulty and location, no search term - use difficulty in query, filter location client-side
+    const fetchLimit = limitCount * 6;
+    q = query(
+      trailsRef,
+      where('difficulty', '==', difficulty),
+      orderBy('createdAt', 'desc'),
+      limit(fetchLimit)
+    );
+  } else if (difficulty) {
+    // Only difficulty, no search term - use it in query
+    const fetchLimit = limitCount * 5;
+    q = query(
+      trailsRef,
+      where('difficulty', '==', difficulty),
+      orderBy('createdAt', 'desc'),
+      limit(fetchLimit)
+    );
+  } else {
+    // No difficulty or search term - if we have a location, fetch more trails
+    let fetchLimit = limitCount * 3;
+    if (normalizedLocation) {
+      // When searching by location only, fetch many more trails to ensure we get all matches
+      fetchLimit = limitCount * 20; // Fetch even more when searching by location only
+    }
+    q = query(trailsRef, orderBy('createdAt', 'desc'), limit(fetchLimit));
   }
 
   const querySnapshot = await getDocs(q);
@@ -230,18 +269,47 @@ export const searchTrails = async (
     } as Trail);
   });
 
-  // Basic client-side filtering for search term
+  // Client-side filtering for search term, location, and difficulty (to handle format variations and edge cases)
+  let filteredTrails = trails;
+
+  // Filter by difficulty if provided (client-side as fallback to catch any edge cases)
+  // This ensures trails with slightly different difficulty values or formatting are still found
+  if (difficulty) {
+    filteredTrails = filteredTrails.filter((trail) => {
+      if (!trail.difficulty) return false;
+      return trail.difficulty.toLowerCase() === difficulty.toLowerCase();
+    });
+  }
+
+  // Filter by location if provided (handle format variations like "Oregon" vs "Oregon, USA")
+  if (normalizedLocation) {
+    const lowerLocation = normalizedLocation.toLowerCase();
+    filteredTrails = filteredTrails.filter((trail) => {
+      if (!trail.location) return false;
+      const trailLocation = trail.location.toLowerCase();
+      // Check if location matches exactly or if trail location contains the search location
+      // This handles "Oregon" matching "Oregon, USA" and vice versa
+      return trailLocation === lowerLocation || 
+             trailLocation.includes(lowerLocation) || 
+             lowerLocation.includes(trailLocation.split(',')[0].trim());
+    });
+  }
+
+  // Filter by search term if provided
   if (searchTerm) {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return trails.filter(
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    filteredTrails = filteredTrails.filter(
       (trail) =>
-        trail.name.toLowerCase().includes(lowerSearchTerm) ||
-        trail.description.toLowerCase().includes(lowerSearchTerm) ||
-        trail.location.toLowerCase().includes(lowerSearchTerm)
+        (trail.name && trail.name.toLowerCase().includes(lowerSearchTerm)) ||
+        (trail.description && trail.description.toLowerCase().includes(lowerSearchTerm)) ||
+        (trail.location && trail.location.toLowerCase().includes(lowerSearchTerm))
     );
   }
 
-  return trails;
+  // Limit results
+  // When searching by location, allow more results to be returned
+  const finalLimit = normalizedLocation ? limitCount * 3 : limitCount;
+  return filteredTrails.slice(0, finalLimit);
 };
 
 /**

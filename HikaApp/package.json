@@ -11,6 +11,7 @@
     "lint": "expo lint",
     "init-db": "ts-node --project scripts/tsconfig.json scripts/initDatabase.ts",
     "verify-db": "ts-node --project scripts/tsconfig.json scripts/verifyDatabase.ts",
+    "populate-oregon": "ts-node --project scripts/tsconfig.json scripts/populateOregonTrails.ts",
     "deploy-rules": "npx firebase-tools deploy --only firestore:rules --project hika-3770e",
     "deploy-indexes": "npx firebase-tools deploy --only firestore:indexes --project hika-3770e"
   },
