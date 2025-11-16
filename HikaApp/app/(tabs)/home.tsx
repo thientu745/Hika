@@ -5,6 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
 import { Input } from "../../components/ui/Input";
 import { searchUsers, subscribeToFeedPosts } from "../../services/database";
+import { Image } from "expo-image";
 
 import type { UserProfile, Post } from "../../types";
 
@@ -137,9 +138,18 @@ const Home = () => {
                   className="flex-row items-center py-3 border-b border-gray-100"
                   onPress={() => router.push(`/profile/${u.uid}` as any)}
                 >
-                  <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center mr-4">
-                    <Text className="text-white font-bold">{u.displayName?.charAt(0).toUpperCase()}</Text>
-                  </View>
+                  {u.profilePictureUrl ? (
+                    <Image
+                      source={{ uri: u.profilePictureUrl }}
+                      style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderColor: '#E5E7EB' }}
+                      contentFit="cover"
+                      className="mr-4"
+                    />
+                  ) : (
+                    <View className="w-12 h-12 bg-green-500 rounded-full items-center justify-center mr-4">
+                      <Text className="text-white font-bold">{u.displayName?.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
                   <View className="flex-1">
                     <Text className="text-gray-900 font-medium">{u.displayName}</Text>
                     {(u as any).username ? (
