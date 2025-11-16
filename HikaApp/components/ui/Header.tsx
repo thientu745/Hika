@@ -8,12 +8,14 @@ export const Header: React.FC = () => {
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.logo}>Hika</Text>
-          <Image
-            source={require('../../assets/images/header.png')}
-            style={styles.headerImage}
-            contentFit="contain"
-          />
+          <View style={styles.logoContainer}>
+            <Text style={styles.logo}>Hika</Text>
+            <Image
+              source={require('../../assets/images/header.png')}
+              style={styles.headerImage}
+              contentFit="contain"
+            />
+          </View>
           <Text style={styles.tagline}>Explore trails & friends</Text>
         </View>
       </View>
@@ -37,6 +39,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   logo: {
     fontSize: 20,
