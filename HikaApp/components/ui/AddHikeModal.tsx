@@ -39,6 +39,19 @@ export const AddHikeModal: React.FC<AddHikeModalProps> = ({
   const [loadingRecentTrails, setLoadingRecentTrails] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Reset modal to initial state when it becomes visible
+  useEffect(() => {
+    if (visible) {
+      setMode('select');
+      setTrailSearchQuery('');
+      setTrailSearchResults([]);
+      setSelectedTrail(null);
+      setCustomHikeName('');
+      setRecentTrails([]);
+      setLoadingRecentTrails(false);
+    }
+  }, [visible]);
+
   // Load recent trails when entering log mode with no search query
   useEffect(() => {
     if (mode === 'log' && !trailSearchQuery.trim() && recentTrails.length === 0 && !loadingRecentTrails) {
@@ -115,7 +128,7 @@ export const AddHikeModal: React.FC<AddHikeModalProps> = ({
 
   const handleSelectTrailForLog = (trail: Trail) => {
     setSelectedTrail(trail);
-    setMode('log');
+    // Mode is already 'log', so LogHikeModal should open
   };
 
   const handleSelectTrailForNew = (trail: Trail) => {
@@ -442,14 +455,14 @@ export const AddHikeModal: React.FC<AddHikeModalProps> = ({
       </Modal>
 
       {/* Log Hike Modal */}
-      {selectedTrail && mode === 'log' && (
+      {selectedTrail && (
         <LogHikeModal
           visible={mode === 'log' && selectedTrail !== null}
           onClose={() => {
-            setMode('select');
             setSelectedTrail(null);
+            setMode('select');
             setTrailSearchQuery('');
-            onClose();
+            // Don't close the AddHikeModal, just go back to select mode
           }}
           trail={selectedTrail}
           onSuccess={() => {
