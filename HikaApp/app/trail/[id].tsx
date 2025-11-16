@@ -377,15 +377,15 @@ const TrailDetail = () => {
           <View style={{ gap: 12, marginBottom: 24 }}>
             <TouchableOpacity
               style={{
-                backgroundColor: '#92C59F',
+                backgroundColor: '#4ADE80',
                 borderRadius: 12,
                 paddingVertical: 16,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                shadowColor: '#92C59F',
+                shadowColor: '#4ADE80',
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
+                shadowOpacity: 0.4,
                 shadowRadius: 8,
                 elevation: 6,
               }}

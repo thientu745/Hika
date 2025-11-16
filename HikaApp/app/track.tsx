@@ -569,51 +569,136 @@ const TrackScreen = () => {
         {!isTracking && <View style={{ width: 24 }} />}
       </View>
 
-      {/* Map */}
-      <View style={{
-        height: 400,
-        backgroundColor: '#E8F5E9',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-      }}>
-        <ActiveTrailMap
-          path={path}
-          currentLocation={currentLocation || undefined}
-          height={400}
-        />
-      </View>
+      {/* Map - Only show when tracking has started */}
+      {isTracking && (
+        <View style={{
+          height: 400,
+          backgroundColor: '#E8F5E9',
+          borderBottomWidth: 1,
+          borderBottomColor: '#E5E7EB',
+        }}>
+          <ActiveTrailMap
+            path={path}
+            currentLocation={currentLocation || undefined}
+            height={400}
+          />
+        </View>
+      )}
 
-      {/* Stats */}
-      <View style={{
-        backgroundColor: '#FFFFFF',
-        paddingVertical: 20,
-        paddingHorizontal: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-      }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Ionicons name="time-outline" size={24} color="#516D58" />
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{formatTime(elapsedTime)}</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Time</Text>
-          </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Ionicons name="resize-outline" size={24} color="#516D58" />
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{formatDistance(distance)}</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Distance</Text>
-          </View>
-          <View style={{ alignItems: 'center', flex: 1 }}>
-            <Ionicons name="trending-up-outline" size={24} color="#516D58" />
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{Math.round(elevationGain)}m</Text>
-            <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Elevation</Text>
+      {/* Initial Welcome State */}
+      {!isTracking && (
+        <View style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 24,
+          paddingVertical: 48,
+        }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 24,
+            padding: 32,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 16,
+            elevation: 4,
+            width: '100%',
+            maxWidth: 400,
+          }}>
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#F0FDF4',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 24,
+            }}>
+              <Ionicons name="location" size={40} color="#92C59F" />
+            </View>
+            <Text style={{ 
+              fontSize: 24, 
+              fontWeight: '800', 
+              color: '#111827', 
+              marginBottom: 12,
+              textAlign: 'center',
+            }}>
+              Ready to Track
+            </Text>
+            <Text style={{ 
+              fontSize: 16, 
+              color: '#6B7280', 
+              textAlign: 'center',
+              lineHeight: 24,
+              marginBottom: 32,
+            }}>
+              Press the button below to start tracking your hike.
+            </Text>
+            
+            {/* Stats Preview */}
+            <View style={{
+              width: '100%',
+              backgroundColor: '#F9FAFB',
+              borderRadius: 16,
+              padding: 20,
+              marginBottom: 24,
+            }}>
+              <Text style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#6B7280',
+                marginBottom: 16,
+                textAlign: 'center',
+              }}>
+                Stats will appear here
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                  <Ionicons name="time-outline" size={20} color="#9CA3AF" />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#D1D5DB', marginTop: 6 }}>0:00</Text>
+                  <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>Time</Text>
+                </View>
+                <View style={{ alignItems: 'center', flex: 1 }}>
+                  <Ionicons name="resize-outline" size={20} color="#9CA3AF" />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#D1D5DB', marginTop: 6 }}>0m</Text>
+                  <Text style={{ fontSize: 11, color: '#9CA3AF', marginTop: 4 }}>Distance</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
-      </View>
+      )}
+
+      {/* Stats - Only show when tracking */}
+      {isTracking && (
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          paddingVertical: 20,
+          paddingHorizontal: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: '#E5E7EB',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          elevation: 2,
+        }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Ionicons name="time-outline" size={24} color="#516D58" />
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{formatTime(elapsedTime)}</Text>
+              <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Time</Text>
+            </View>
+            <View style={{ alignItems: 'center', flex: 1 }}>
+              <Ionicons name="resize-outline" size={24} color="#516D58" />
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginTop: 8 }}>{formatDistance(distance)}</Text>
+              <Text style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Distance</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Controls */}
       <View style={{
@@ -625,15 +710,15 @@ const TrackScreen = () => {
         {!isTracking ? (
           <TouchableOpacity
             style={{
-              backgroundColor: '#92C59F',
+              backgroundColor: '#4ADE80',
               borderRadius: 12,
               paddingVertical: 18,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              shadowColor: '#92C59F',
+              shadowColor: '#4ADE80',
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
+              shadowOpacity: 0.4,
               shadowRadius: 8,
               elevation: 6,
             }}
@@ -649,15 +734,15 @@ const TrackScreen = () => {
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: '#92C59F',
+                  backgroundColor: '#4ADE80',
                   borderRadius: 12,
                   paddingVertical: 18,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: '#92C59F',
+                  shadowColor: '#4ADE80',
                   shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
+                  shadowOpacity: 0.4,
                   shadowRadius: 8,
                   elevation: 6,
                 }}
