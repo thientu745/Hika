@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { createPost, getTrail, addTrailToList, updateUserStatsFromHike } from '../services/database';
 import ActiveTrailMap from '../components/maps/ActiveTrailMap';
+import { HikeCelebrationModal } from '../components/ui/HikeCelebrationModal';
 import type { LocationPoint } from './track';
 
 interface TrackingData {
@@ -44,6 +45,8 @@ const CreatePostFromTracking = () => {
   const [loading, setLoading] = useState(true);
   const [trailName, setTrailName] = useState(params.trailName || '');
   const [trailLocation, setTrailLocation] = useState('');
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [xpGained, setXpGained] = useState(0);
   
   // If we have a custom trail name but no trailId, use the custom name
   const displayTrailName = trailName || params.trailName || 'Unknown Trail';
@@ -179,6 +182,18 @@ const CreatePostFromTracking = () => {
 
       await createPost(postData);
 
+      // Calculate XP gained before updating stats
+      let calculatedXpGained = 10; // Base XP for completing a hike
+      if (distance > 0) {
+        calculatedXpGained += Math.floor(distance / 100);
+      }
+      if (timeElapsed > 0) {
+        calculatedXpGained += Math.floor(timeElapsed / 600);
+      }
+      if (elevationGain > 0) {
+        calculatedXpGained += Math.floor(elevationGain / 10);
+      }
+
       // Update user stats
       if (distance > 0 || timeElapsed > 0 || elevationGain > 0) {
         try {
@@ -188,30 +203,44 @@ const CreatePostFromTracking = () => {
             timeElapsed > 0 ? timeElapsed : undefined,
             elevationGain > 0 ? elevationGain : undefined
           );
+          // Show celebration modal after successful update
+          setXpGained(calculatedXpGained);
+          setShowCelebration(true);
         } catch (e) {
           console.warn('Failed to update user stats:', e);
+          // Still show success alert if stats update fails
+          Alert.alert('Success', 'Post created successfully!', [
+            {
+              text: 'OK',
+              onPress: () => {
+                router.back();
+                router.back(); // Go back twice to return to the trail detail or home
+              },
+            },
+          ]);
         }
+      } else {
+        // If no stats, just show success alert
+        Alert.alert('Success', 'Post created successfully!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              router.back();
+              router.back(); // Go back twice to return to the trail detail or home
+            },
+          },
+        ]);
       }
 
-          // Add trail to completed list (only if we have a trailId)
-          if (params.trailId) {
-            try {
-              await addTrailToList(user.uid, params.trailId, 'completed');
-            } catch (e) {
-              console.warn('Failed to add trail to completed list:', e);
-            }
-          }
-          // Note: Custom hikes without trailId won't be added to completed list
-
-      Alert.alert('Success', 'Post created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            router.back();
-            router.back(); // Go back twice to return to the trail detail or home
-          },
-        },
-      ]);
+      // Add trail to completed list (only if we have a trailId)
+      if (params.trailId) {
+        try {
+          await addTrailToList(user.uid, params.trailId, 'completed');
+        } catch (e) {
+          console.warn('Failed to add trail to completed list:', e);
+        }
+      }
+      // Note: Custom hikes without trailId won't be added to completed list
     } catch (error) {
       console.error('Error creating post:', error);
       Alert.alert('Error', 'Failed to create post. Please try again.');
@@ -318,6 +347,21 @@ const CreatePostFromTracking = () => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Celebration Modal */}
+      {user && (
+        <HikeCelebrationModal
+          visible={showCelebration}
+          onClose={() => {
+            setShowCelebration(false);
+            router.back();
+            router.back(); // Go back twice to return to the trail detail or home
+          }}
+          xpGained={xpGained}
+          userId={user.uid}
+          trailName={displayTrailName}
+        />
+      )}
     </View>
   );
 };
