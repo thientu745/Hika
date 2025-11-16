@@ -1,14 +1,12 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Alert } from 'react-native';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { PostComposer } from '../../components/ui/PostComposer';
 import { PostCard } from '../../components/ui/PostCard';
-import { getUserPosts, getTrail, addTrailToList, removeTrailFromList, updateUserProfile } from '../../services/database';
-import { Image } from 'expo-image';
-import { pickImage, uploadProfilePicture } from '../../services/storage';
+import { getUserPosts, getTrail } from '../../services/database';
 import type { Post, Trail, UserRank } from '../../types';
 
 // Rank thresholds
@@ -63,92 +61,9 @@ const getXPProgress = (currentXP: number, currentRank: UserRank) => {
   };
 };
 
-// Reusable TrailRow component for consistent list rendering
-interface TrailRowProps {
-  trail: Trail;
-  userProfile: any;
-  user: any;
-  listType: 'favorites' | 'wishlist' | 'completed';
-  onNavigate: (trailId: string) => void;
-  onRefresh: () => Promise<void>;
-}
-
-const TrailRow = ({ trail, userProfile, user, listType, onNavigate, onRefresh }: TrailRowProps) => {
-  const isFavorited = userProfile?.favorites?.includes(trail.id);
-
-  const handleToggleFavorite = async () => {
-    if (!user) {
-      Alert.alert('Sign in required', 'Please sign in to manage favorites.');
-      return;
-    }
-    try {
-      if (isFavorited) {
-        await removeTrailFromList(user.uid, trail.id, 'favorites');
-      } else {
-        await addTrailToList(user.uid, trail.id, 'favorites');
-      }
-      await onRefresh();
-    } catch {
-      Alert.alert('Error', 'Failed to update favorites. Please try again.');
-    }
-  };
-
-  const handleRemoveFromList = async () => {
-    if (!user) {
-      Alert.alert('Sign in required', 'Please sign in to manage lists.');
-      return;
-    }
-
-    try {
-      await removeTrailFromList(user.uid, trail.id, listType);
-      await onRefresh();
-      console.log(`Trail removed from ${listType}`);
-    } catch (error) {
-      console.error('Failed to remove trail:', error);
-      Alert.alert('Error', 'Failed to remove trail. Please try again.');
-    }
-  };
-
-  return (
-    <View className="px-4 py-3 border-b border-gray-100 last:border-b-0 flex-row items-center justify-between">
-      <TouchableOpacity
-        onPress={() => onNavigate(trail.id)}
-        className="flex-1"
-      >
-        <Text className="text-gray-900 font-medium">{trail.name}</Text>
-        {trail.location && (
-          <View className="flex-row items-center mt-1">
-            <Ionicons name="location" size={12} color="#6B7280" />
-            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-      <View className="flex-row items-center ml-2">
-        {(listType === 'wishlist' || listType === 'completed') && (
-          <TouchableOpacity
-            onPress={handleToggleFavorite}
-            className="p-2"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons 
-              name={isFavorited ? 'heart' : 'heart-outline'} 
-              size={18} 
-              color="#EF4444" 
-            />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          onPress={handleRemoveFromList}
-          className="p-2"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={18} color="#6B7280" />
-        </TouchableOpacity>
-        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
-      </View>
-    </View>
-  );
-};
+import { Image } from 'expo-image';
+import { pickImage, uploadProfilePicture } from '../../services/storage';
+import { updateUserProfile } from '../../services/database';
 
 const Profile = () => {
   const { user, userProfile, signOut, loading, refreshUserProfile } = useAuth();
@@ -173,25 +88,6 @@ const Profile = () => {
   const handleSignOut = async () => {
     await signOut();
     router.replace('/welcome');
-  };
-
-  // Optimized trail loading function - uses Promise.all for parallel loading
-  const loadTrails = async (trailIds: string[]) => {
-    if (trailIds.length === 0) return [];
-    
-    try {
-      const trailPromises = trailIds.map(id =>
-        getTrail(id).catch(err => {
-          console.warn(`Failed to load trail ${id}:`, err);
-          return null;
-        })
-      );
-      const trails = await Promise.all(trailPromises);
-      return trails.filter((trail): trail is Trail => trail !== null);
-    } catch (err) {
-      console.error('Error loading trails:', err);
-      return [];
-    }
   };
 
   const handleImageUpload = async () => {
@@ -231,7 +127,7 @@ const Profile = () => {
       console.log('Refreshed user profile');
 
       Alert.alert('Success', 'Profile picture updated successfully!');
-      } catch (error: any) {
+    } catch (error: any) {
       console.error('❌ ERROR IN PROFILE PICTURE UPLOAD');
       console.error('Error code:', error?.code);
       console.error('Error message:', error?.message);
@@ -255,6 +151,16 @@ const Profile = () => {
     }
   };
 
+  // Redirect to welcome if not authenticated (after all hooks)
+  if (!loading && !user) {
+    return <Redirect href="/welcome" />;
+  }
+
+  // Show loading only while checking auth, not while loading profile
+  if (loading) {
+    return <LoadingScreen message="Loading profile..." variant="minimal" />;
+  }
+
   // Use fallback values if profile is still loading
   const displayName = userProfile?.displayName || user?.displayName || 'User';
   const bio = userProfile?.bio || '';
@@ -264,9 +170,9 @@ const Profile = () => {
   const totalTime = userProfile?.totalTime || 0;
   const rank = userProfile?.rank || 'Copper';
   const xp = userProfile?.xp || 0;
-  const favorites = useMemo(() => userProfile?.favorites || [], [userProfile?.favorites]);
-  const completed = useMemo(() => userProfile?.completed || [], [userProfile?.completed]);
-  const wishlist = useMemo(() => userProfile?.wishlist || [], [userProfile?.wishlist]);
+  const favorites = userProfile?.favorites || [];
+  const completed = userProfile?.completed || [];
+  const wishlist = userProfile?.wishlist || [];
 
   // Load user posts
   useEffect(() => {
@@ -294,14 +200,29 @@ const Profile = () => {
       return;
     }
 
-    const load = async () => {
+    const loadFavoriteTrails = async () => {
       setLoadingFavorites(true);
-      const trails = await loadTrails(favorites);
-      setFavoriteTrails(trails);
-      setLoadingFavorites(false);
+      try {
+        const trails: Trail[] = [];
+        for (const trailId of favorites) {
+          try {
+            const trail = await getTrail(trailId);
+            if (trail) {
+              trails.push(trail);
+            }
+          } catch (err) {
+            console.warn(`Failed to load favorite trail ${trailId}:`, err);
+          }
+        }
+        setFavoriteTrails(trails);
+      } catch (err) {
+        console.error('Error loading favorite trails:', err);
+      } finally {
+        setLoadingFavorites(false);
+      }
     };
 
-    load();
+    loadFavoriteTrails();
   }, [showFavorites, favorites]);
 
   // Load wishlist trails when section is expanded
@@ -311,14 +232,29 @@ const Profile = () => {
       return;
     }
 
-    const load = async () => {
+    const loadWishlistTrails = async () => {
       setLoadingWishlist(true);
-      const trails = await loadTrails(wishlist);
-      setWishlistTrails(trails);
-      setLoadingWishlist(false);
+      try {
+        const trails: Trail[] = [];
+        for (const trailId of wishlist) {
+          try {
+            const trail = await getTrail(trailId);
+            if (trail) {
+              trails.push(trail);
+            }
+          } catch (err) {
+            console.warn(`Failed to load wishlist trail ${trailId}:`, err);
+          }
+        }
+        setWishlistTrails(trails);
+      } catch (err) {
+        console.error('Error loading wishlist trails:', err);
+      } finally {
+        setLoadingWishlist(false);
+      }
     };
 
-    load();
+    loadWishlistTrails();
   }, [showWishlist, wishlist]);
 
   // Load completed trails when section is expanded
@@ -328,25 +264,30 @@ const Profile = () => {
       return;
     }
 
-    const load = async () => {
+    const loadCompletedTrails = async () => {
       setLoadingCompleted(true);
-      const trails = await loadTrails(completed);
-      setCompletedTrails(trails);
-      setLoadingCompleted(false);
+      try {
+        const trails: Trail[] = [];
+        for (const trailId of completed) {
+          try {
+            const trail = await getTrail(trailId);
+            if (trail) {
+              trails.push(trail);
+            }
+          } catch (err) {
+            console.warn(`Failed to load completed trail ${trailId}:`, err);
+          }
+        }
+        setCompletedTrails(trails);
+      } catch (err) {
+        console.error('Error loading completed trails:', err);
+      } finally {
+        setLoadingCompleted(false);
+      }
     };
 
-    load();
+    loadCompletedTrails();
   }, [showCompleted, completed]);
-
-  // Redirect to welcome if not authenticated (after all hooks)
-  if (!loading && !user) {
-    return <Redirect href="/welcome" />;
-  }
-
-  // Show loading only while checking auth, not while loading profile
-  if (loading) {
-    return <LoadingScreen message="Loading profile..." variant="minimal" />;
-  }
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -537,15 +478,24 @@ const Profile = () => {
                 </View>
               ) : (
                 favoriteTrails.map((trail) => (
-                  <TrailRow
+                  <TouchableOpacity
                     key={trail.id}
-                    trail={trail}
-                    userProfile={userProfile}
-                    user={user}
-                    listType="favorites"
-                    onNavigate={(id) => router.push(`/trail/${id}` as any)}
-                    onRefresh={refreshUserProfile}
-                  />
+                    onPress={() => router.push(`/trail/${trail.id}` as any)}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        {trail.location && (
+                          <View className="flex-row items-center mt-1">
+                            <Ionicons name="location" size={12} color="#6B7280" />
+                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
                 ))
               )}
             </View>
@@ -581,15 +531,24 @@ const Profile = () => {
                 </View>
               ) : (
                 wishlistTrails.map((trail) => (
-                  <TrailRow
+                  <TouchableOpacity
                     key={trail.id}
-                    trail={trail}
-                    userProfile={userProfile}
-                    user={user}
-                    listType="wishlist"
-                    onNavigate={(id) => router.push(`/trail/${id}` as any)}
-                    onRefresh={refreshUserProfile}
-                  />
+                    onPress={() => router.push(`/trail/${trail.id}` as any)}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        {trail.location && (
+                          <View className="flex-row items-center mt-1">
+                            <Ionicons name="location" size={12} color="#6B7280" />
+                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
                 ))
               )}
             </View>
@@ -625,15 +584,24 @@ const Profile = () => {
                 </View>
               ) : (
                 completedTrails.map((trail) => (
-                  <TrailRow
+                  <TouchableOpacity
                     key={trail.id}
-                    trail={trail}
-                    userProfile={userProfile}
-                    user={user}
-                    listType="completed"
-                    onNavigate={(id) => router.push(`/trail/${id}` as any)}
-                    onRefresh={refreshUserProfile}
-                  />
+                    onPress={() => router.push(`/trail/${trail.id}` as any)}
+                    className="px-4 py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className="text-gray-900 font-medium">{trail.name}</Text>
+                        {trail.location && (
+                          <View className="flex-row items-center mt-1">
+                            <Ionicons name="location" size={12} color="#6B7280" />
+                            <Text className="text-gray-600 text-xs ml-1">{trail.location}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                    </View>
+                  </TouchableOpacity>
                 ))
               )}
             </View>

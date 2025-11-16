@@ -1,9 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
-import { getTrail, addTrailToList, removeTrailFromList } from '../../services/database';
+import { getTrail } from '../../services/database';
 import { Ionicons } from '@expo/vector-icons';
 import TrailMap from '../../components/maps/TrailMap';
 import { LogHikeModal } from '../../components/ui/LogHikeModal';
@@ -12,7 +12,7 @@ import type { Trail } from '../../types';
 const TrailDetail = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user, userProfile, refreshUserProfile, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -250,64 +250,18 @@ const TrailDetail = () => {
 
             <View className="flex-row space-x-3">
               <TouchableOpacity
-                className="w-1/3 bg-red-50 border border-red-200 rounded-lg p-3 flex-row items-center justify-center"
-                onPress={async () => {
-                  if (!user) {
-                    Alert.alert('Sign in required', 'Please sign in to add favorites.');
-                    return;
-                  }
-
-                  const isFav = !!userProfile?.favorites?.includes(trail.id);
-                  try {
-                    if (isFav) {
-                      await removeTrailFromList(user.uid, trail.id, 'favorites');
-                      Alert.alert('Removed', 'Trail removed from your favorites.');
-                    } else {
-                      await addTrailToList(user.uid, trail.id, 'favorites');
-                      Alert.alert('Added', 'Trail added to your favorites.');
-                    }
-                    // refresh profile to update UI quickly
-                    try { await refreshUserProfile(); } catch {}
-                  } catch (err) {
-                    console.error('Failed to toggle favorite:', err);
-                    Alert.alert('Error', 'Failed to update favorites. Please try again.');
-                  }
-                }}
-              >
-                <Ionicons name={userProfile?.favorites?.includes(trail.id) ? 'heart' : 'heart-outline'} size={20} color="#EF4444" />
-                <Text className="text-red-600 font-medium ml-2">Favorite</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 className="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-3 flex-row items-center justify-center"
-                onPress={async () => {
-                  if (!user) {
-                    Alert.alert('Sign in required', 'Please sign in to add trails to your wishlist.');
-                    return;
-                  }
-
-                  const isWish = !!userProfile?.wishlist?.includes(trail.id);
-                  try {
-                    if (isWish) {
-                      await removeTrailFromList(user.uid, trail.id, 'wishlist');
-                      Alert.alert('Removed', 'Trail removed from your wishlist.');
-                    } else {
-                      await addTrailToList(user.uid, trail.id, 'wishlist');
-                      Alert.alert('Added', 'Trail added to your wishlist.');
-                    }
-                    try { await refreshUserProfile(); } catch {}
-                  } catch (err) {
-                    console.error('Failed to toggle wishlist:', err);
-                    Alert.alert('Error', 'Failed to update wishlist. Please try again.');
-                  }
+                onPress={() => {
+                  // TODO: Add to wishlist
+                  console.log('Add to wishlist:', trail.id);
                 }}
               >
-                <Ionicons name={userProfile?.wishlist?.includes(trail.id) ? 'bookmark' : 'bookmark-outline'} size={20} color="#3B82F6" />
-                <Text className="text-blue-600 font-medium ml-2">{userProfile?.wishlist?.includes(trail.id) ? 'Wishlisted' : 'Wishlist'}</Text>
+                <Ionicons name="heart-outline" size={20} color="#3B82F6" />
+                <Text className="text-blue-600 font-medium ml-2">Wishlist</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="w-1/3 bg-gray-50 border border-gray-200 rounded-lg p-3 flex-row items-center justify-center"
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-3 flex-row items-center justify-center"
                 onPress={() => {
                   // TODO: Share trail
                   console.log('Share trail:', trail.id);

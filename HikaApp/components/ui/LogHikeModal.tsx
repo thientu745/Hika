@@ -28,7 +28,6 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
   const [hikeDate, setHikeDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [description, setDescription] = useState('');
-  const [favorite, setFavorite] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -169,15 +168,6 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
         }
       }
 
-      // If user marked the hike as favorite while logging, add to favorites
-      if (user && favorite) {
-        try {
-          await addTrailToList(user.uid, trail.id, 'favorites');
-        } catch (e) {
-          console.warn('Failed to add trail to favorites:', e);
-        }
-      }
-
       // Reset form
       setDescription('');
       setDistance('');
@@ -237,18 +227,9 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
               <Text className="text-xl font-bold text-gray-900">Log Hike</Text>
-              <View className="flex-row items-center">
-                <TouchableOpacity
-                  onPress={() => setFavorite((f) => !f)}
-                  className="mr-3"
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={22} color="#EF4444" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Ionicons name="close" size={24} color="#1F2937" />
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color="#1F2937" />
+              </TouchableOpacity>
             </View>
 
             <View className="px-4 py-6">
