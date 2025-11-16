@@ -34,6 +34,9 @@ import type {
   ActiveTrail,
   TrailRating,
   Notification,
+  Message,
+  Conversation,
+  SharedPostData,
 } from '../types';
 
 // ==================== User Profile Operations ====================
@@ -703,6 +706,17 @@ export const addComment = async (postId: string, comment: Omit<Comment, 'id' | '
   }
 };
 
+/**
+ * Increment share count for a post
+ */
+export const incrementPostShares = async (postId: string): Promise<void> => {
+  const postRef = doc(db, 'posts', postId);
+  await updateDoc(postRef, {
+    shares: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+};
+
 // ==================== Achievement Operations ====================
 
 /**
@@ -879,5 +893,224 @@ export const createOrUpdateTrailRating = async (
 
   const averageRating = count > 0 ? totalRating / count : 0;
   await updateTrailRating(trailId, averageRating, count);
+};
+
+// ==================== Messaging Operations ====================
+
+/**
+ * Generate conversation ID from two user IDs (sorted to ensure consistency)
+ */
+const generateConversationId = (userId1: string, userId2: string): string => {
+  const ids = [userId1, userId2].sort();
+  return `${ids[0]}_${ids[1]}`;
+};
+
+/**
+ * Send a message (text or shared post) between two users
+ */
+export const sendMessage = async (
+  senderId: string,
+  recipientId: string,
+  senderDisplayName: string,
+  senderProfilePictureUrl: string | undefined,
+  text?: string,
+  sharedPost?: SharedPostData
+): Promise<string> => {
+  const conversationId = generateConversationId(senderId, recipientId);
+  const conversationRef = doc(db, 'conversations', conversationId);
+  const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+
+  // Create message
+  const messageData: Omit<Message, 'id'> = {
+    conversationId,
+    senderId,
+    senderDisplayName,
+    senderProfilePictureUrl,
+    text,
+    sharedPost,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const messageRef = await addDoc(messagesRef, {
+    ...messageData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  // Get recipient profile to update conversation
+  const recipientProfile = await getUserProfile(recipientId);
+  const senderProfile = await getUserProfile(senderId);
+
+  // Update or create conversation document
+  await setDoc(conversationRef, {
+    id: conversationId,
+    participants: [senderId, recipientId],
+    participantNames: [senderDisplayName, recipientProfile?.displayName || 'Unknown'],
+    participantAvatars: [senderProfilePictureUrl, recipientProfile?.profilePictureUrl],
+    lastMessage: text || '📷 Shared a post',
+    lastMessageTime: new Date(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+
+  return messageRef.id;
+};
+
+/**
+ * Get all conversations for a user
+ */
+export const getUserConversations = async (userId: string): Promise<Conversation[]> => {
+  const conversationsRef = collection(db, 'conversations');
+  const q = query(conversationsRef, where('participants', 'array-contains', userId), orderBy('updatedAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  const conversations: Conversation[] = [];
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    conversations.push({
+      id: doc.id,
+      participants: data.participants,
+      participantNames: data.participantNames,
+      participantAvatars: data.participantAvatars,
+      lastMessage: data.lastMessage,
+      lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    } as Conversation);
+  });
+
+  return conversations;
+};
+
+/**
+ * Get conversation between two users
+ */
+export const getConversation = async (userId1: string, userId2: string): Promise<Conversation | null> => {
+  const conversationId = generateConversationId(userId1, userId2);
+  const conversationRef = doc(db, 'conversations', conversationId);
+  const conversationSnap = await getDoc(conversationRef);
+
+  if (conversationSnap.exists()) {
+    const data = conversationSnap.data();
+    return {
+      id: conversationSnap.id,
+      participants: data.participants,
+      participantNames: data.participantNames,
+      participantAvatars: data.participantAvatars,
+      lastMessage: data.lastMessage,
+      lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    } as Conversation;
+  }
+  return null;
+};
+
+/**
+ * Get messages in a conversation
+ */
+export const getConversationMessages = async (userId1: string, userId2: string, limitCount: number = 50): Promise<Message[]> => {
+  const conversationId = generateConversationId(userId1, userId2);
+  const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+  const q = query(messagesRef, orderBy('createdAt', 'desc'), limit(limitCount));
+  const querySnapshot = await getDocs(q);
+  const messages: Message[] = [];
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    messages.push({
+      id: doc.id,
+      conversationId: data.conversationId,
+      senderId: data.senderId,
+      senderDisplayName: data.senderDisplayName,
+      senderProfilePictureUrl: data.senderProfilePictureUrl,
+      text: data.text,
+      sharedPost: data.sharedPost,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    } as Message);
+  });
+
+  // Reverse to get chronological order (oldest first)
+  return messages.reverse();
+};
+
+/**
+ * Subscribe to messages in a conversation (real-time updates)
+ */
+export const subscribeToConversationMessages = (
+  userId1: string,
+  userId2: string,
+  callback: (messages: Message[]) => void,
+  limitCount: number = 50
+): (() => void) => {
+  const conversationId = generateConversationId(userId1, userId2);
+  const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+  const q = query(messagesRef, orderBy('createdAt', 'asc'), limit(limitCount));
+
+  const unsubscribe = onSnapshot(
+    q,
+    (snap) => {
+      const messages: Message[] = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        messages.push({
+          id: doc.id,
+          conversationId: data.conversationId,
+          senderId: data.senderId,
+          senderDisplayName: data.senderDisplayName,
+          senderProfilePictureUrl: data.senderProfilePictureUrl,
+          text: data.text,
+          sharedPost: data.sharedPost,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Message);
+      });
+      callback(messages);
+    },
+    (err) => {
+      console.warn('Conversation listener error:', err);
+    }
+  );
+
+  return unsubscribe;
+};
+
+/**
+ * Subscribe to user's conversations (real-time updates)
+ */
+export const subscribeToUserConversations = (
+  userId: string,
+  callback: (conversations: Conversation[]) => void
+): (() => void) => {
+  const conversationsRef = collection(db, 'conversations');
+  const q = query(conversationsRef, where('participants', 'array-contains', userId), orderBy('updatedAt', 'desc'));
+
+  const unsubscribe = onSnapshot(
+    q,
+    (snap) => {
+      const conversations: Conversation[] = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
+        conversations.push({
+          id: doc.id,
+          participants: data.participants,
+          participantNames: data.participantNames,
+          participantAvatars: data.participantAvatars,
+          lastMessage: data.lastMessage,
+          lastMessageTime: data.lastMessageTime?.toDate() || new Date(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Conversation);
+      });
+      callback(conversations);
+    },
+    (err) => {
+      console.warn('Conversations listener error:', err);
+    }
+  );
+
+  return unsubscribe;
 };
 

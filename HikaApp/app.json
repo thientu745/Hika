@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.thientu745.Hika",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to track your trail and display it on a map.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to track your trail and display it on a map."
       }
     },
     "android": {
@@ -24,7 +26,11 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.thientu745.Hika"
+      "package": "com.thientu745.Hika",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -43,6 +49,14 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Hika to use your location to track your trail and display it on a map.",
+          "locationAlwaysPermission": "Allow Hika to use your location to track your trail and display it on a map.",
+          "locationWhenInUsePermission": "Allow Hika to use your location to track your trail and display it on a map."
         }
       ]
     ],

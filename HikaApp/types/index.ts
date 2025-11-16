@@ -187,3 +187,37 @@ export interface Notification {
 
 export type NotificationType = 'like' | 'comment' | 'follow' | 'achievement' | 'leaderboard';
 
+// Message Types for user-to-user messaging
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderDisplayName: string;
+  senderProfilePictureUrl?: string;
+  text?: string; // Optional text content
+  sharedPost?: SharedPostData; // Optional shared post data
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SharedPostData {
+  postId: string;
+  trailName: string;
+  description: string;
+  images: string[];
+  distance?: number;
+  elevationGain?: number;
+  time?: number;
+}
+
+export interface Conversation {
+  id: string;
+  participants: string[]; // Array of user UIDs
+  participantNames: string[]; // Display names of participants
+  participantAvatars: (string | undefined)[]; // Profile pictures of participants
+  lastMessage?: string; // Preview of last message
+  lastMessageTime?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
