@@ -11,14 +11,16 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import { getUserProfile, createUserProfile } from '../services/database';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { UserProfile } from '../types';
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  followRefreshToken: number;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -44,6 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [followRefreshToken, setFollowRefreshToken] = useState(0);
 
   // Refresh user profile from Firestore
   const refreshUserProfile = async () => {
@@ -52,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const profile = await getUserProfile(user.uid);
         setUserProfile(profile);
+        setFollowRefreshToken((t) => t + 1);
       } catch (error) {
         console.error('Error loading user profile:', error);
         // Keep existing profile if available, don't clear it on error
@@ -64,84 +68,89 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeAuth = () => {};
+    let unsubscribeProfile: (() => void) | null = null;
+
+    unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      
+
       // Set loading to false immediately after auth state is known
       // Don't wait for profile to load
       setLoading(false);
-      
+
       if (firebaseUser) {
-        // Load user profile in the background (non-blocking)
+        // Use realtime listener to keep user profile in sync
         setProfileLoading(true);
         try {
-          // Add timeout to prevent hanging
-          const profilePromise = getUserProfile(firebaseUser.uid);
-          const timeoutPromise = new Promise<UserProfile | null>((resolve) => {
-            setTimeout(() => resolve(null), 5000); // 5 second timeout
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          unsubscribeProfile = onSnapshot(userRef, (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              setUserProfile({
+                uid: snap.id,
+                ...data,
+                createdAt: data.createdAt?.toDate?.() || new Date(),
+                updatedAt: data.updatedAt?.toDate?.() || new Date(),
+              } as UserProfile);
+              setFollowRefreshToken((t) => t + 1);
+            } else {
+              // If no document yet, fall back to minimal profile from auth
+              setUserProfile({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                displayName: firebaseUser.displayName || 'User',
+                bio: '',
+                profilePictureUrl: '',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                totalDistance: 0,
+                totalHikes: 0,
+                totalTime: 0,
+                xp: 0,
+                rank: 'Copper',
+                achievements: [],
+                following: [],
+                followers: [],
+                favorites: [],
+                completed: [],
+                wishlist: [],
+              });
+            }
+            setProfileLoading(false);
           });
-          
-          const profile = await Promise.race([profilePromise, timeoutPromise]);
-          
-          if (profile) {
-            setUserProfile(profile);
-          } else {
-            console.warn('Profile load timed out or failed');
-            // Create a minimal profile from auth data as fallback
-            setUserProfile({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'User',
-              bio: '',
-              profilePictureUrl: '',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              totalDistance: 0,
-              totalHikes: 0,
-              totalTime: 0,
-              xp: 0,
-              rank: 'Copper',
-              achievements: [],
-              following: [],
-              followers: [],
-              favorites: [],
-              completed: [],
-              wishlist: [],
-            });
-          }
         } catch (error) {
-          console.error('Error loading user profile:', error);
-          // Create minimal profile as fallback
-          setUserProfile({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || 'User',
-            bio: '',
-            profilePictureUrl: '',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            totalDistance: 0,
-            totalHikes: 0,
-            totalTime: 0,
-            xp: 0,
-            rank: 'Copper',
-            achievements: [],
-            following: [],
-            followers: [],
-            favorites: [],
-            completed: [],
-            wishlist: [],
-          });
-        } finally {
+          console.error('Error setting up profile listener:', error);
+          // Fallback: try one-time fetch
+          try {
+            const profile = await getUserProfile(firebaseUser.uid);
+            setUserProfile(profile);
+          } catch (err) {
+            console.error('Error loading user profile:', err);
+          }
           setProfileLoading(false);
         }
       } else {
         setUserProfile(null);
         setProfileLoading(false);
+        if (unsubscribeProfile) {
+          try {
+            unsubscribeProfile();
+          } catch {}
+          unsubscribeProfile = null;
+        }
       }
     });
 
-    return unsubscribe;
+    return () => {
+      try {
+        unsubscribeAuth();
+      } catch {}
+      if (unsubscribeProfile) {
+        try {
+          unsubscribeProfile();
+        } catch {}
+      }
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -215,6 +224,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     userProfile,
     loading,
+    followRefreshToken,
     signIn,
     signUp,
     signOut,
