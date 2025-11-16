@@ -151,30 +151,12 @@ const Profile = () => {
     }
   };
 
-  // Redirect to welcome if not authenticated (after all hooks)
-  if (!loading && !user) {
-    return <Redirect href="/welcome" />;
-  }
-
-  // Show loading only while checking auth, not while loading profile
-  if (loading) {
-    return <LoadingScreen message="Loading profile..." variant="minimal" />;
-  }
-
-  // Use fallback values if profile is still loading
-  const displayName = userProfile?.displayName || user?.displayName || 'User';
-  const bio = userProfile?.bio || '';
-  const profilePictureUrl = userProfile?.profilePictureUrl;
-  const totalDistance = userProfile?.totalDistance || 0;
-  const totalHikes = userProfile?.totalHikes || 0;
-  const totalTime = userProfile?.totalTime || 0;
-  const rank = userProfile?.rank || 'Copper';
-  const xp = userProfile?.xp || 0;
+  // Use fallback values if profile is still loading (needed for useEffect dependencies)
   const favorites = userProfile?.favorites || [];
   const completed = userProfile?.completed || [];
   const wishlist = userProfile?.wishlist || [];
 
-  // Load user posts
+  // Load user posts (must be before early returns)
   useEffect(() => {
     if (!user?.uid) return;
 
@@ -193,7 +175,7 @@ const Profile = () => {
     loadPosts();
   }, [user?.uid]);
 
-  // Load favorite trails when section is expanded
+  // Load favorite trails when section is expanded (must be before early returns)
   useEffect(() => {
     if (!showFavorites || favorites.length === 0) {
       setFavoriteTrails([]);
@@ -225,7 +207,7 @@ const Profile = () => {
     loadFavoriteTrails();
   }, [showFavorites, favorites]);
 
-  // Load wishlist trails when section is expanded
+  // Load wishlist trails when section is expanded (must be before early returns)
   useEffect(() => {
     if (!showWishlist || wishlist.length === 0) {
       setWishlistTrails([]);
@@ -257,7 +239,7 @@ const Profile = () => {
     loadWishlistTrails();
   }, [showWishlist, wishlist]);
 
-  // Load completed trails when section is expanded
+  // Load completed trails when section is expanded (must be before early returns)
   useEffect(() => {
     if (!showCompleted || completed.length === 0) {
       setCompletedTrails([]);
@@ -288,6 +270,26 @@ const Profile = () => {
 
     loadCompletedTrails();
   }, [showCompleted, completed]);
+
+  // Redirect to welcome if not authenticated (after all hooks)
+  if (!loading && !user) {
+    return <Redirect href="/welcome" />;
+  }
+
+  // Show loading only while checking auth, not while loading profile
+  if (loading) {
+    return <LoadingScreen message="Loading profile..." variant="minimal" />;
+  }
+
+  // Use fallback values if profile is still loading
+  const displayName = userProfile?.displayName || user?.displayName || 'User';
+  const bio = userProfile?.bio || '';
+  const profilePictureUrl = userProfile?.profilePictureUrl;
+  const totalDistance = userProfile?.totalDistance || 0;
+  const totalHikes = userProfile?.totalHikes || 0;
+  const totalTime = userProfile?.totalTime || 0;
+  const rank = userProfile?.rank || 'Copper';
+  const xp = userProfile?.xp || 0;
 
   return (
     <ScrollView className="flex-1 bg-white">
