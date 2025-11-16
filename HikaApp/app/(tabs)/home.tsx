@@ -4,6 +4,7 @@ import { Redirect, useRouter, Link } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
 import { Input } from "../../components/ui/Input";
+import { PostCard } from "../../components/ui/PostCard";
 import { searchUsers, subscribeToFeedPosts } from "../../services/database";
 
 import type { UserProfile, Post } from "../../types";
@@ -161,11 +162,7 @@ const Home = () => {
             <Text className="text-gray-500">No posts yet.</Text>
           ) : (
             feedPosts.map((p) => (
-              <View key={p.id} className="mb-4 bg-gray-50 rounded-lg p-3">
-                <Text className="text-gray-900 font-medium">{p.userDisplayName}</Text>
-                <Text className="text-gray-900 mt-1">{p.description}</Text>
-                <Text className="text-gray-500 text-sm mt-2">{new Date(p.createdAt).toLocaleString()}</Text>
-              </View>
+              <PostCard key={p.id} post={p} />
             ))
           )}
         </View>

@@ -101,6 +101,81 @@ export const updateUserProfile = async (uid: string, updates: Partial<UserProfil
 };
 
 /**
+ * Calculate rank based on XP
+ */
+const calculateRank = (xp: number): UserProfile['rank'] => {
+  if (xp >= 150000) return 'Diamond';
+  if (xp >= 50000) return 'Platinum';
+  if (xp >= 15000) return 'Gold';
+  if (xp >= 5000) return 'Silver';
+  if (xp >= 1000) return 'Bronze';
+  return 'Copper';
+};
+
+/**
+ * Update user stats when a hike is logged
+ * @param uid - User ID
+ * @param distance - Distance in meters (optional)
+ * @param time - Time in seconds (optional)
+ * @param elevationGain - Elevation gain in meters (optional)
+ */
+export const updateUserStatsFromHike = async (
+  uid: string,
+  distance?: number,
+  time?: number,
+  elevationGain?: number
+): Promise<void> => {
+  const userRef = doc(db, 'users', uid);
+  
+  // Calculate XP for this hike
+  let xpGained = 10; // Base XP for completing a hike
+  
+  if (distance !== undefined && distance > 0) {
+    // 1 XP per 100 meters
+    xpGained += Math.floor(distance / 100);
+  }
+  
+  if (time !== undefined && time > 0) {
+    // 1 XP per 10 minutes (600 seconds)
+    xpGained += Math.floor(time / 600);
+  }
+  
+  if (elevationGain !== undefined && elevationGain > 0) {
+    // 1 XP per 10 meters of elevation gain
+    xpGained += Math.floor(elevationGain / 10);
+  }
+  
+  // Get current user profile to calculate new rank
+  const userSnap = await getDoc(userRef);
+  let currentXp = 0;
+  if (userSnap.exists()) {
+    currentXp = userSnap.data().xp || 0;
+  }
+  
+  const newXp = currentXp + xpGained;
+  const newRank = calculateRank(newXp);
+  
+  // Build update object with increments
+  const updates: any = {
+    totalHikes: increment(1),
+    xp: increment(xpGained),
+    rank: newRank,
+    updatedAt: serverTimestamp(),
+  };
+  
+  // Only increment distance and time if they are provided and valid
+  if (distance !== undefined && distance > 0) {
+    updates.totalDistance = increment(distance);
+  }
+  
+  if (time !== undefined && time > 0) {
+    updates.totalTime = increment(time);
+  }
+  
+  await updateDoc(userRef, updates);
+};
+
+/**
  * Add trail to user's list (favorites, completed, or wishlist)
  */
 export const addTrailToList = async (
@@ -362,16 +437,30 @@ export const updateTrailRating = async (trailId: string, newRating: number, rati
 
 /**
  * Create a new post
+ * @param post - Post data without id, createdAt, and updatedAt
+ * @param options - Optional parameters for retroactive logging
+ * @param options.createdAt - Optional custom creation date (for retroactive logging)
+ * @param options.updatedAt - Optional custom update date (for retroactive logging)
  */
-export const createPost = async (post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+export const createPost = async (
+  post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>,
+  options?: { createdAt?: Date; updatedAt?: Date }
+): Promise<string> => {
   const postsRef = collection(db, 'posts');
+  const createdAt = options?.createdAt 
+    ? Timestamp.fromDate(options.createdAt)
+    : serverTimestamp();
+  const updatedAt = options?.updatedAt
+    ? Timestamp.fromDate(options.updatedAt)
+    : serverTimestamp();
+  
   const docRef = await addDoc(postsRef, {
     ...post,
     likes: [],
     comments: [],
     shares: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt,
+    updatedAt,
   });
   return docRef.id;
 };
