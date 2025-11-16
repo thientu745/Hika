@@ -1,9 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar, Alert } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
-import { getTrail } from '../../services/database';
+import { getTrail, addTrailToList, removeTrailFromList } from '../../services/database';
 import { Ionicons } from '@expo/vector-icons';
 import TrailMap from '../../components/maps/TrailMap';
 import { LogHikeModal } from '../../components/ui/LogHikeModal';
@@ -12,11 +12,16 @@ import type { Trail } from '../../types';
 const TrailDetail = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading, refreshUserProfile } = useAuth();
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLogHikeModal, setShowLogHikeModal] = useState(false);
+  const [processingWishlist, setProcessingWishlist] = useState(false);
+  const [processingFavorite, setProcessingFavorite] = useState(false);
+  
+  const isInWishlist = userProfile?.wishlist?.includes(id || '') || false;
+  const isInFavorites = userProfile?.favorites?.includes(id || '') || false;
 
   useEffect(() => {
     if (id && !authLoading) {
@@ -103,6 +108,58 @@ const TrailDetail = () => {
       }
     }
     return stars;
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!user?.uid || !id) {
+      Alert.alert('Please sign in', 'You need to be signed in to manage your wishlist');
+      return;
+    }
+
+    if (processingWishlist) return;
+
+    try {
+      setProcessingWishlist(true);
+      if (isInWishlist) {
+        await removeTrailFromList(user.uid, id, 'wishlist');
+        Alert.alert('Removed', 'Trail removed from wishlist');
+      } else {
+        await addTrailToList(user.uid, id, 'wishlist');
+        Alert.alert('Added', 'Trail added to wishlist');
+      }
+      await refreshUserProfile();
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      Alert.alert('Error', 'Failed to update wishlist. Please try again.');
+    } finally {
+      setProcessingWishlist(false);
+    }
+  };
+
+  const handleFavoriteToggle = async () => {
+    if (!user?.uid || !id) {
+      Alert.alert('Please sign in', 'You need to be signed in to manage your favorites');
+      return;
+    }
+
+    if (processingFavorite) return;
+
+    try {
+      setProcessingFavorite(true);
+      if (isInFavorites) {
+        await removeTrailFromList(user.uid, id, 'favorites');
+        Alert.alert('Removed', 'Trail removed from favorites');
+      } else {
+        await addTrailToList(user.uid, id, 'favorites');
+        Alert.alert('Added', 'Trail added to favorites');
+      }
+      await refreshUserProfile();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      Alert.alert('Error', 'Failed to update favorites. Please try again.');
+    } finally {
+      setProcessingFavorite(false);
+    }
   };
 
   return (
@@ -250,25 +307,53 @@ const TrailDetail = () => {
 
             <View className="flex-row space-x-3">
               <TouchableOpacity
-                className="flex-1 bg-blue-50 border border-blue-200 rounded-lg p-3 flex-row items-center justify-center"
-                onPress={() => {
-                  // TODO: Add to wishlist
-                  console.log('Add to wishlist:', trail.id);
-                }}
+                className={`flex-1 border rounded-lg p-3 flex-row items-center justify-center ${
+                  isInWishlist
+                    ? 'bg-blue-500 border-blue-500'
+                    : 'bg-blue-50 border-blue-200'
+                }`}
+                onPress={handleWishlistToggle}
+                disabled={processingWishlist}
               >
-                <Ionicons name="heart-outline" size={20} color="#3B82F6" />
-                <Text className="text-blue-600 font-medium ml-2">Wishlist</Text>
+                {processingWishlist ? (
+                  <ActivityIndicator size="small" color={isInWishlist ? "#FFFFFF" : "#3B82F6"} />
+                ) : (
+                  <>
+                    <Ionicons 
+                      name={isInWishlist ? "bookmark" : "bookmark-outline"} 
+                      size={20} 
+                      color={isInWishlist ? "#FFFFFF" : "#3B82F6"} 
+                    />
+                    <Text className={`font-medium ml-2 ${isInWishlist ? 'text-white' : 'text-blue-600'}`}>
+                      {isInWishlist ? 'In Wishlist' : 'Wishlist'}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg p-3 flex-row items-center justify-center"
-                onPress={() => {
-                  // TODO: Share trail
-                  console.log('Share trail:', trail.id);
-                }}
+                className={`flex-1 border rounded-lg p-3 flex-row items-center justify-center ${
+                  isInFavorites
+                    ? 'bg-red-500 border-red-500'
+                    : 'bg-red-50 border-red-200'
+                }`}
+                onPress={handleFavoriteToggle}
+                disabled={processingFavorite}
               >
-                <Ionicons name="share-outline" size={20} color="#6B7280" />
-                <Text className="text-gray-700 font-medium ml-2">Share</Text>
+                {processingFavorite ? (
+                  <ActivityIndicator size="small" color={isInFavorites ? "#FFFFFF" : "#EF4444"} />
+                ) : (
+                  <>
+                    <Ionicons 
+                      name={isInFavorites ? "heart" : "heart-outline"} 
+                      size={20} 
+                      color={isInFavorites ? "#FFFFFF" : "#EF4444"} 
+                    />
+                    <Text className={`font-medium ml-2 ${isInFavorites ? 'text-white' : 'text-red-600'}`}>
+                      {isInFavorites ? 'Favorited' : 'Favorite'}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>
