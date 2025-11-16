@@ -143,7 +143,7 @@ const Home = () => {
         {/* People search */}
         <View className="mb-4">
           <TextInput
-            className="rounded-lg px-4 py-3 text-white bg-transparent border border-white"
+            className="rounded-lg px-4 py-3 text-hika-darkgreen bg-white border border-white"
             placeholder="Search people by name or username"
             placeholderTextColor="#9CA3AF"
             value={searchQuery}
