@@ -689,7 +689,7 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showFavorites && (
-            <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
               {loadingFavorites ? (
                 <View className="py-8 items-center">
                   <ActivityIndicator size="small" color="#10b981" />
@@ -758,7 +758,7 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showWishlist && (
-            <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
               {loadingWishlist ? (
                 <View className="py-8 items-center">
                   <ActivityIndicator size="small" color="#10b981" />
@@ -827,7 +827,7 @@ const RemoteProfile = () => {
           </TouchableOpacity>
 
           {showCompleted && (
-            <View className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+            <View className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
               {loadingCompleted ? (
                 <View className="py-8 items-center">
                   <ActivityIndicator size="small" color="#10b981" />
