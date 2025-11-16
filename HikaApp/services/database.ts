@@ -741,11 +741,16 @@ export const addUserAchievement = async (uid: string, achievementId: string, xpR
  * Get leaderboard entries
  * Note: This is a simplified version. For production, consider using Cloud Functions
  * to calculate leaderboards periodically and store them in a separate collection.
+ * 
+ * For time periods: Currently uses total stats. For proper period-based leaderboards,
+ * you would need to track stats by period (e.g., dailyDistance, weeklyDistance, etc.)
+ * or use Cloud Functions to calculate period-specific stats.
  */
 export const getLeaderboard = async (
   period: LeaderboardPeriod,
   stat: LeaderboardStat,
-  limitCount: number = 100
+  limitCount: number = 100,
+  friendUserIds?: string[] // If provided, only show these users (friends leaderboard)
 ): Promise<LeaderboardEntry[]> => {
   // This would typically query a pre-calculated leaderboard collection
   // For now, we'll query users and sort client-side (not ideal for large datasets)
@@ -754,9 +759,16 @@ export const getLeaderboard = async (
   const entries: LeaderboardEntry[] = [];
 
   querySnapshot.forEach((doc) => {
+    // If friendUserIds is provided, filter to only include those users
+    if (friendUserIds && !friendUserIds.includes(doc.id)) {
+      return;
+    }
+
     const data = doc.data();
     let value = 0;
 
+    // TODO: For proper period-based leaderboards, you would query period-specific stats
+    // For now, we use total stats regardless of period
     switch (stat) {
       case 'distance':
         value = data.totalDistance || 0;
