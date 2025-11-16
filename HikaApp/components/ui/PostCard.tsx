@@ -1,34 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import TrailMap from '../maps/TrailMap';
-import { getTrail } from '../../services/database';
+import { SharePostModal } from './SharePostModal';
+import { CommentModal } from './CommentModal';
+import { getTrail, likePost, unlikePost, getPost } from '../../services/database';
 import type { Post, Trail } from '../../types';
 
 interface PostCardProps {
   post: Post;
+  onUpdate?: (updatedPost: Post) => void;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post }) => {
+export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loadingTrail, setLoadingTrail] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [currentPost, setCurrentPost] = useState<Post>(post);
+  const [liking, setLiking] = useState(false);
 
   useEffect(() => {
-    if (post.trailId) {
+    setCurrentPost(post);
+  }, [post]);
+
+  useEffect(() => {
+    if (currentPost.trailId) {
       loadTrail();
     }
-  }, [post.trailId]);
+  }, [currentPost.trailId]);
 
   const loadTrail = async () => {
-    if (!post.trailId) return;
+    if (!currentPost.trailId) return;
     
     try {
       setLoadingTrail(true);
-      const trailData = await getTrail(post.trailId);
+      const trailData = await getTrail(currentPost.trailId);
       if (trailData) {
         setTrail(trailData);
       }
@@ -72,51 +83,106 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
   };
 
-  const hasStats = post.distance !== undefined || post.elevationGain !== undefined || post.time !== undefined;
+  const handleLike = async () => {
+    if (!user?.uid) {
+      Alert.alert('Please sign in', 'You need to be signed in to like posts');
+      return;
+    }
+
+    if (liking) return;
+
+    const isLiked = currentPost.likes?.includes(user.uid) || false;
+
+    try {
+      setLiking(true);
+      if (isLiked) {
+        await unlikePost(currentPost.id, user.uid);
+      } else {
+        await likePost(currentPost.id, user.uid);
+      }
+
+      // Refresh post data
+      const updatedPost = await getPost(currentPost.id);
+      if (updatedPost) {
+        setCurrentPost(updatedPost);
+        onUpdate?.(updatedPost);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      Alert.alert('Error', 'Failed to update like. Please try again.');
+    } finally {
+      setLiking(false);
+    }
+  };
+
+  const handleCommentAdded = async () => {
+    // Refresh post data after comment is added
+    try {
+      const updatedPost = await getPost(currentPost.id);
+      if (updatedPost) {
+        setCurrentPost(updatedPost);
+        onUpdate?.(updatedPost);
+      }
+    } catch (error) {
+      console.error('Error refreshing post:', error);
+    }
+  };
+
+  const hasStats = currentPost.distance !== undefined || currentPost.elevationGain !== undefined || currentPost.time !== undefined;
+  const isLiked = user && currentPost.likes?.includes(user.uid);
 
   return (
     <View className="mb-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
-        {post.userProfilePictureUrl ? (
-          <Image
-            source={{ uri: post.userProfilePictureUrl }}
-            className="w-10 h-10 rounded-full mr-3"
-          />
-        ) : (
-          <View className="w-10 h-10 bg-green-500 rounded-full items-center justify-center mr-3">
-            <Text className="text-white font-bold text-lg">
-              {post.userDisplayName?.charAt(0).toUpperCase() || 'U'}
-            </Text>
-          </View>
-        )}
-        <View className="flex-1">
-          <Text className="text-gray-900 font-semibold">{post.userDisplayName}</Text>
-          <Text className="text-gray-500 text-xs">{formatDate(post.createdAt)}</Text>
-        </View>
+        <TouchableOpacity
+          onPress={() => router.push(`/profile/${currentPost.userId}` as any)}
+          activeOpacity={0.7}
+        >
+          {currentPost.userProfilePictureUrl ? (
+            <Image
+              source={{ uri: currentPost.userProfilePictureUrl }}
+              className="w-10 h-10 rounded-full mr-3"
+            />
+          ) : (
+            <View className="w-10 h-10 bg-green-500 rounded-full items-center justify-center mr-3">
+              <Text className="text-white font-bold text-lg">
+                {currentPost.userDisplayName?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push(`/profile/${currentPost.userId}` as any)}
+          activeOpacity={0.7}
+          className="flex-1"
+        >
+          <Text className="text-gray-900 font-semibold">{currentPost.userDisplayName}</Text>
+          <Text className="text-gray-500 text-xs">{formatDate(currentPost.createdAt)}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Description */}
-      {post.description && (
+      {currentPost.description && (
         <View className="px-4 py-3">
-          <Text className="text-gray-900 text-base leading-6">{post.description}</Text>
+          <Text className="text-gray-900 text-base leading-6">{currentPost.description}</Text>
         </View>
       )}
 
       {/* Trail Info */}
-      {post.trailId && post.trailName && (
+      {currentPost.trailId && currentPost.trailName && (
         <TouchableOpacity
-          onPress={() => router.push(`/trail/${post.trailId}` as any)}
+          onPress={() => router.push(`/trail/${currentPost.trailId}` as any)}
           className="px-4 py-2 bg-gray-50 border-y border-gray-100"
         >
           <View className="flex-row items-center">
             <Ionicons name="trail-sign" size={20} color="#10b981" />
             <View className="flex-1 ml-2">
-              <Text className="text-gray-900 font-semibold">{post.trailName}</Text>
-              {post.location && (
+              <Text className="text-gray-900 font-semibold">{currentPost.trailName}</Text>
+              {currentPost.location && (
                 <View className="flex-row items-center mt-1">
                   <Ionicons name="location" size={14} color="#6B7280" />
-                  <Text className="text-gray-600 text-sm ml-1">{post.location}</Text>
+                  <Text className="text-gray-600 text-sm ml-1">{currentPost.location}</Text>
                 </View>
               )}
             </View>
@@ -129,22 +195,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {hasStats && (
         <View className="px-4 py-3 bg-gray-50 border-b border-gray-100">
           <View className="flex-row flex-wrap">
-            {post.distance !== undefined && (
+            {currentPost.distance !== undefined && (
               <View className="flex-row items-center mr-6 mb-2">
                 <Ionicons name="resize-outline" size={18} color="#10b981" />
-                <Text className="text-gray-700 font-medium ml-2">{formatDistance(post.distance)}</Text>
+                <Text className="text-gray-700 font-medium ml-2">{formatDistance(currentPost.distance)}</Text>
               </View>
             )}
-            {post.elevationGain !== undefined && (
+            {currentPost.elevationGain !== undefined && (
               <View className="flex-row items-center mr-6 mb-2">
                 <Ionicons name="trending-up-outline" size={18} color="#10b981" />
-                <Text className="text-gray-700 font-medium ml-2">{Math.round(post.elevationGain)}m</Text>
+                <Text className="text-gray-700 font-medium ml-2">{Math.round(currentPost.elevationGain)}m</Text>
               </View>
             )}
-            {post.time !== undefined && (
+            {currentPost.time !== undefined && (
               <View className="flex-row items-center mb-2">
                 <Ionicons name="time-outline" size={18} color="#10b981" />
-                <Text className="text-gray-700 font-medium ml-2">{formatTime(post.time)}</Text>
+                <Text className="text-gray-700 font-medium ml-2">{formatTime(currentPost.time)}</Text>
               </View>
             )}
           </View>
@@ -152,7 +218,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
 
       {/* Trail Map */}
-      {post.trailId && (
+      {currentPost.trailId && (
         <View className="bg-gray-50">
           {loadingTrail ? (
             <View className="h-48 items-center justify-center">
@@ -171,23 +237,52 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
       {/* Engagement Bar */}
       <View className="flex-row items-center px-4 py-2 border-t border-gray-100">
-        <TouchableOpacity className="flex-row items-center mr-6">
-          <Ionicons 
-            name={user && post.likes?.includes(user.uid) ? "heart" : "heart-outline"} 
-            size={20} 
-            color={user && post.likes?.includes(user.uid) ? "#EF4444" : "#6B7280"} 
-          />
-          <Text className="text-gray-600 text-sm ml-2">{post.likes?.length || 0}</Text>
+        <TouchableOpacity 
+          onPress={handleLike}
+          disabled={liking}
+          className="flex-row items-center mr-6"
+        >
+          {liking ? (
+            <ActivityIndicator size="small" color="#EF4444" />
+          ) : (
+            <Ionicons 
+              name={isLiked ? "heart" : "heart-outline"} 
+              size={20} 
+              color={isLiked ? "#EF4444" : "#6B7280"} 
+            />
+          )}
+          <Text className="text-gray-600 text-sm ml-2">{currentPost.likes?.length || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity className="flex-row items-center mr-6">
+        <TouchableOpacity 
+          onPress={() => setCommentModalVisible(true)}
+          className="flex-row items-center mr-6"
+        >
           <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
-          <Text className="text-gray-600 text-sm ml-2">{post.comments?.length || 0}</Text>
+          <Text className="text-gray-600 text-sm ml-2">{currentPost.comments?.length || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity className="flex-row items-center">
+        <TouchableOpacity
+          onPress={() => setShareModalVisible(true)}
+          className="flex-row items-center"
+        >
           <Ionicons name="share-outline" size={20} color="#6B7280" />
-          <Text className="text-gray-600 text-sm ml-2">{post.shares || 0}</Text>
+          <Text className="text-gray-600 text-sm ml-2">{currentPost.shares || 0}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Share Modal */}
+      <SharePostModal
+        visible={shareModalVisible}
+        post={currentPost}
+        onClose={() => setShareModalVisible(false)}
+      />
+
+      {/* Comment Modal */}
+      <CommentModal
+        visible={commentModalVisible}
+        post={currentPost}
+        onClose={() => setCommentModalVisible(false)}
+        onCommentAdded={handleCommentAdded}
+      />
     </View>
   );
 };
