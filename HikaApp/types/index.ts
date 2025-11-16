@@ -83,6 +83,14 @@ export interface Post {
   time?: number; // in seconds
   elevationGain?: number; // in meters
   
+  // Traveled path (GPS tracking data) - only for posts created from active tracking
+  path?: {
+    latitude: number;
+    longitude: number;
+    altitude?: number;
+    timestamp?: Date;
+  }[];
+  
   // Engagement
   likes: string[]; // Array of user UIDs who liked
   comments: Comment[];

@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ActiveTrailMap from '../components/maps/ActiveTrailMap';
 import { useAuth } from '../contexts/AuthContext';
 
-interface LocationPoint {
+export interface LocationPoint {
   latitude: number;
   longitude: number;
   altitude?: number;
@@ -26,12 +26,12 @@ interface LocationPoint {
 
 const TrackScreen = () => {
   const router = useRouter();
-  const { trailId } = useLocalSearchParams<{ trailId?: string }>();
+  const { trailId, trailName } = useLocalSearchParams<{ trailId?: string; trailName?: string }>();
   const { user } = useAuth();
 
   useEffect(() => {
-    console.log('TrackScreen mounted, trailId:', trailId);
-  }, [trailId]);
+    console.log('TrackScreen mounted, trailId:', trailId, 'trailName:', trailName);
+  }, [trailId, trailName]);
 
   const [isTracking, setIsTracking] = useState(false);
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
@@ -143,18 +143,20 @@ const TrackScreen = () => {
     location: Location.LocationObject,
     lastLocation: LocationPoint | null
   ): boolean => {
-    // Check accuracy - reject readings with accuracy worse than 50 meters
-    if (location.coords.accuracy && location.coords.accuracy > 50) {
+    // Check accuracy - reject readings with accuracy worse than 100 meters (more lenient)
+    if (location.coords.accuracy && location.coords.accuracy > 100) {
+      console.log('Rejected: Poor accuracy', location.coords.accuracy);
       return false;
     }
 
     // Check for unrealistic speed jumps (more than 50 m/s = 180 km/h)
     if (lastLocation && location.coords.speed !== null && location.coords.speed !== undefined) {
       if (location.coords.speed > 50) {
+        console.log('Rejected: Unrealistic speed', location.coords.speed);
         return false; // Unrealistic speed for hiking
       }
 
-      // Check for unrealistic position jumps
+      // Check for unrealistic position jumps (only if we have a last location)
       if (lastLocation.latitude && lastLocation.longitude) {
         const distance = calculateDistance2D(
           lastLocation.latitude,
@@ -163,10 +165,12 @@ const TrackScreen = () => {
           location.coords.longitude
         );
         
+        // More lenient: Allow larger jumps if speed is reasonable
         // If speed is available, check if the distance makes sense
-        // Allow up to 10 m/s (36 km/h) which is reasonable for running
-        const maxDistance = (location.coords.speed || 10) * 2; // 2 seconds max
-        if (distance > maxDistance && distance > 20) {
+        // Allow up to 15 m/s (54 km/h) which is reasonable for cycling
+        const maxDistance = (location.coords.speed || 15) * 5; // 5 seconds max (more lenient)
+        if (distance > maxDistance && distance > 100) { // Only reject if > 100m jump
+          console.log('Rejected: Unrealistic position jump', distance, 'max allowed:', maxDistance);
           return false; // Unrealistic jump
         }
       }
@@ -220,31 +224,37 @@ const TrackScreen = () => {
       locationSubscriptionRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.BestForNavigation,
-          timeInterval: 250, // Update every 250ms for smooth tracking
-          distanceInterval: 2, // Update every 2 meters for smoother path
+          timeInterval: 1000, // Update every 1 second for better battery life
+          distanceInterval: 0, // Update on every location change (no minimum distance)
         },
         (location) => {
           if (!isPausedRef.current) {
-            // Validate GPS reading
+            // Always update current location for map display, even if validation fails
+            const newPoint: LocationPoint = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              altitude: location.coords.altitude || undefined,
+              timestamp: new Date(),
+              accuracy: location.coords.accuracy || undefined,
+              speed: location.coords.speed || undefined,
+            };
+            
+            // Always update current location for map display
+            setCurrentLocation(newPoint);
+            
+            // Validate GPS reading for distance/path tracking
             if (!isValidLocation(location, lastLocationRef.current)) {
-              return; // Skip invalid readings
+              // Still update lastLocationRef for next validation, but don't accumulate distance
+              lastLocationRef.current = newPoint;
+              return; // Skip invalid readings for distance tracking
             }
 
             // Smooth elevation if available
             const rawAltitude = location.coords.altitude || null;
             const smoothedAltitude = smoothElevation(rawAltitude);
 
-            const newPoint: LocationPoint = {
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-              altitude: smoothedAltitude || undefined,
-              timestamp: new Date(),
-              accuracy: location.coords.accuracy || undefined,
-              speed: location.coords.speed || undefined,
-            };
-
-            // Always update current location for map display (even if we don't add to path)
-            setCurrentLocation(newPoint);
+            // Update the point with smoothed elevation
+            newPoint.altitude = smoothedAltitude || undefined;
 
             if (lastLocationRef.current) {
               // Calculate 3D distance (more accurate)
@@ -257,10 +267,15 @@ const TrackScreen = () => {
                 newPoint.altitude || null
               );
 
+              // Always accumulate distance for all valid location updates
+              // This ensures distance updates even for small movements
+              if (segmentDistance > 0) {
+                setDistance((prev) => prev + segmentDistance);
+              }
+
               // Only add point if it's at least 2 meters away (to reduce noise while keeping smooth path)
               if (segmentDistance >= 2) {
                 setPath((prev) => [...prev, newPoint]);
-                setDistance((prev) => prev + segmentDistance);
 
                 // Calculate elevation gain with smoothing and threshold
                 if (
@@ -277,6 +292,18 @@ const TrackScreen = () => {
                   }
                 } else if (newPoint.altitude !== undefined) {
                   // Update elevation reference even if no gain
+                  lastElevationRef.current = newPoint.altitude;
+                }
+              } else if (newPoint.altitude !== undefined && lastElevationRef.current !== null) {
+                // Update elevation reference even if we don't add the point to path
+                // This ensures elevation tracking continues for small movements
+                if (newPoint.altitude > lastElevationRef.current) {
+                  const gain = newPoint.altitude - lastElevationRef.current;
+                  if (gain >= 1) {
+                    setElevationGain((prev) => prev + gain);
+                    lastElevationRef.current = newPoint.altitude;
+                  }
+                } else {
                   lastElevationRef.current = newPoint.altitude;
                 }
               }
@@ -328,6 +355,24 @@ const TrackScreen = () => {
     setIsTracking(false);
     setIsPaused(false);
     isPausedRef.current = false;
+
+    // Navigate to post creation screen with tracking data
+    if (path.length > 0) {
+      router.push({
+        pathname: '/create-post-from-tracking',
+        params: {
+          trailId: trailId || '',
+          trailName: trailName || '', // Pass custom trail name if provided
+          timeElapsed: elapsedTime.toString(),
+          distance: distance.toString(),
+          elevationGain: elevationGain.toString(),
+          path: JSON.stringify(path),
+        },
+      } as any);
+    } else {
+      // If no path was recorded, just go back
+      router.back();
+    }
   };
 
   const resetTracking = () => {
@@ -467,7 +512,9 @@ const TrackScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Track Trail</Text>
+        <Text style={styles.headerTitle}>
+          {trailName || (trailId ? 'Track Trail' : 'New Hike')}
+        </Text>
         {isTracking && (
           <TouchableOpacity onPress={resetTracking} style={styles.resetButton}>
             <Ionicons name="refresh-outline" size={24} color="#EF4444" />

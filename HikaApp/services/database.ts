@@ -370,9 +370,11 @@ export const searchTrails = async (
   if (searchTerm) {
     // When searching by name, fetch many trails and filter everything client-side
     // This ensures we find all matching trails regardless of difficulty/location format
-    let fetchLimit = limitCount * 10;
+    // Increase fetch limit to get more trails for better search results
+    // Fetch more trails to ensure we find matches, but cap at reasonable limits
+    let fetchLimit = Math.min(Math.max(limitCount * 20, 200), 1000); // Fetch 200-1000 trails when searching
     if (normalizedLocation) {
-      fetchLimit = limitCount * 15; // Even more when searching by name + location
+      fetchLimit = Math.min(Math.max(limitCount * 30, 300), 1500); // Even more when searching by name + location
     }
     q = query(trailsRef, orderBy('createdAt', 'desc'), limit(fetchLimit));
   } else if (difficulty && normalizedLocation) {
@@ -442,15 +444,32 @@ export const searchTrails = async (
     });
   }
 
-  // Filter by search term if provided
+  // Filter by search term if provided - make it more lenient
   if (searchTerm) {
     const lowerSearchTerm = searchTerm.toLowerCase().trim();
-    filteredTrails = filteredTrails.filter(
-      (trail) =>
-        (trail.name && trail.name.toLowerCase().includes(lowerSearchTerm)) ||
-        (trail.description && trail.description.toLowerCase().includes(lowerSearchTerm)) ||
-        (trail.location && trail.location.toLowerCase().includes(lowerSearchTerm))
-    );
+    // Split search term into words for more flexible matching
+    const searchWords = lowerSearchTerm.split(/\s+/).filter(word => word.length > 0);
+    
+    filteredTrails = filteredTrails.filter((trail) => {
+      const trailName = (trail.name || '').toLowerCase();
+      const trailDescription = (trail.description || '').toLowerCase();
+      const trailLocation = (trail.location || '').toLowerCase();
+      
+      // If single word, check if it appears anywhere
+      if (searchWords.length === 1) {
+        const word = searchWords[0];
+        return trailName.includes(word) || 
+               trailDescription.includes(word) || 
+               trailLocation.includes(word);
+      }
+      
+      // If multiple words, check if all words appear (in any order)
+      return searchWords.every(word => 
+        trailName.includes(word) || 
+        trailDescription.includes(word) || 
+        trailLocation.includes(word)
+      );
+    });
   }
 
   // Limit results
@@ -492,14 +511,45 @@ export const createPost = async (
     ? Timestamp.fromDate(options.updatedAt)
     : serverTimestamp();
   
-  const docRef = await addDoc(postsRef, {
+  // Prepare post data, converting path timestamps and removing undefined values
+  const postData: any = {
     ...post,
     likes: [],
     comments: [],
     shares: 0,
     createdAt,
     updatedAt,
+  };
+  
+  // Convert path timestamps from Date objects to Firestore Timestamps
+  if (postData.path && Array.isArray(postData.path)) {
+    postData.path = postData.path.map((point: any) => {
+      const pathPoint: any = {
+        latitude: point.latitude,
+        longitude: point.longitude,
+      };
+      // Only include altitude if it's defined
+      if (point.altitude !== undefined && point.altitude !== null) {
+        pathPoint.altitude = point.altitude;
+      }
+      // Convert timestamp to Firestore Timestamp
+      if (point.timestamp) {
+        const timestamp = point.timestamp instanceof Date ? point.timestamp : new Date(point.timestamp);
+        pathPoint.timestamp = Timestamp.fromDate(timestamp);
+      }
+      return pathPoint;
+    });
+  }
+  
+  // Remove any undefined values from the post data
+  const cleanPostData: any = {};
+  Object.keys(postData).forEach((key) => {
+    if (postData[key] !== undefined) {
+      cleanPostData[key] = postData[key];
+    }
   });
+  
+  const docRef = await addDoc(postsRef, cleanPostData);
   return docRef.id;
 };
 
@@ -512,7 +562,7 @@ export const getPost = async (postId: string): Promise<Post | null> => {
 
   if (postSnap.exists()) {
     const data = postSnap.data();
-    return {
+    const post: Post = {
       id: postSnap.id,
       ...data,
       createdAt: data.createdAt?.toDate() || new Date(),
@@ -522,6 +572,16 @@ export const getPost = async (postId: string): Promise<Post | null> => {
         createdAt: c.createdAt?.toDate() || new Date(),
       })),
     } as Post;
+    
+    // Convert path timestamps from Firestore Timestamps to Date objects
+    if (post.path && Array.isArray(post.path)) {
+      post.path = post.path.map((point: any) => ({
+        ...point,
+        timestamp: point.timestamp?.toDate ? point.timestamp.toDate() : (point.timestamp instanceof Date ? point.timestamp : new Date(point.timestamp || Date.now())),
+      }));
+    }
+    
+    return post;
   }
   return null;
 };
@@ -537,7 +597,7 @@ export const getUserPosts = async (userId: string, limitCount: number = 20): Pro
 
   querySnapshot.forEach((doc) => {
     const data = doc.data();
-    posts.push({
+    const post: Post = {
       id: doc.id,
       ...data,
       createdAt: data.createdAt?.toDate() || new Date(),
@@ -546,7 +606,17 @@ export const getUserPosts = async (userId: string, limitCount: number = 20): Pro
         ...c,
         createdAt: c.createdAt?.toDate() || new Date(),
       })),
-    } as Post);
+    } as Post;
+    
+    // Convert path timestamps from Firestore Timestamps to Date objects
+    if (post.path && Array.isArray(post.path)) {
+      post.path = post.path.map((point: any) => ({
+        ...point,
+        timestamp: point.timestamp?.toDate ? point.timestamp.toDate() : (point.timestamp instanceof Date ? point.timestamp : new Date(point.timestamp || Date.now())),
+      }));
+    }
+    
+    posts.push(post);
   });
 
   return posts;
@@ -572,7 +642,7 @@ export const getFeedPosts = async (followingUserIds: string[], limitCount: numbe
 
   querySnapshot.forEach((doc) => {
     const data = doc.data();
-    posts.push({
+    const post: Post = {
       id: doc.id,
       ...data,
       createdAt: data.createdAt?.toDate() || new Date(),
@@ -581,7 +651,17 @@ export const getFeedPosts = async (followingUserIds: string[], limitCount: numbe
         ...c,
         createdAt: c.createdAt?.toDate() || new Date(),
       })),
-    } as Post);
+    } as Post;
+    
+    // Convert path timestamps from Firestore Timestamps to Date objects
+    if (post.path && Array.isArray(post.path)) {
+      post.path = post.path.map((point: any) => ({
+        ...point,
+        timestamp: point.timestamp?.toDate ? point.timestamp.toDate() : (point.timestamp instanceof Date ? point.timestamp : new Date(point.timestamp || Date.now())),
+      }));
+    }
+    
+    posts.push(post);
   });
 
   return posts;
@@ -636,6 +716,15 @@ export const subscribeToFeedPosts = (
               createdAt: c.createdAt?.toDate() || new Date(),
             })),
           } as Post;
+          
+          // Convert path timestamps from Firestore Timestamps to Date objects
+          if (post.path && Array.isArray(post.path)) {
+            post.path = post.path.map((point: any) => ({
+              ...point,
+              timestamp: point.timestamp?.toDate ? point.timestamp.toDate() : (point.timestamp instanceof Date ? point.timestamp : new Date(point.timestamp || Date.now())),
+            }));
+          }
+          
           allPosts.set(doc.id, post);
         });
 
