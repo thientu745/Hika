@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Modal, TouchableOpacity, ScrollView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Modal, TouchableOpacity, ScrollView, Platform, StyleSheet, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from './Button';
 import { HikeCelebrationModal } from './HikeCelebrationModal';
-import { createPost, addTrailToList, updateUserStatsFromHike } from '../../services/database';
+import { createPost, addTrailToList, updateUserStatsFromHike, updatePost } from '../../services/database';
+import { pickMultipleImages, uploadPostImages } from '../../services/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Trail } from '../../types';
 
@@ -33,6 +34,8 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [xpGained, setXpGained] = useState(0);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Format date for display
   const formatDate = (date: Date): string => {
@@ -64,6 +67,27 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
         setHikeDate(newDate);
       }
     }
+  };
+
+  const handlePickImages = async () => {
+    try {
+      const maxImages = 10 - selectedImages.length;
+      if (maxImages <= 0) {
+        Alert.alert('Limit reached', 'You can select up to 10 images per post.');
+        return;
+      }
+      const images = await pickMultipleImages(maxImages);
+      if (images.length > 0) {
+        setSelectedImages(prev => [...prev, ...images]);
+      }
+    } catch (error) {
+      console.error('Error picking images:', error);
+      Alert.alert('Error', 'Failed to pick images. Please try again.');
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -138,13 +162,30 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
         postData.time = finalTime;
       }
 
-      await createPost(
+      // Create post first to get postId
+      const postId = await createPost(
         postData,
         {
           createdAt: hikeDate,
           updatedAt: hikeDate,
         }
       );
+
+      // Upload images if any were selected
+      if (selectedImages.length > 0) {
+        try {
+          setUploadingImages(true);
+          const imageUrls = await uploadPostImages(user.uid, postId, selectedImages);
+          // Update post with image URLs
+          await updatePost(postId, { images: imageUrls });
+        } catch (error) {
+          console.error('Error uploading images:', error);
+          // Don't fail the post creation if image upload fails
+          Alert.alert('Warning', 'Post created but some images failed to upload.');
+        } finally {
+          setUploadingImages(false);
+        }
+      }
 
       // Calculate XP gained before updating stats
       let calculatedXpGained = 10; // Base XP for completing a hike
@@ -390,6 +431,51 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
                 </View>
               </View>
 
+              {/* Photo Gallery */}
+              <View className="mb-6">
+                <Text className="text-base font-medium text-gray-900 mb-2">Photos (Optional)</Text>
+                <TouchableOpacity
+                  onPress={handlePickImages}
+                  disabled={selectedImages.length >= 10}
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 items-center justify-center"
+                  style={selectedImages.length >= 10 && { opacity: 0.5 }}
+                >
+                  <Ionicons name="images-outline" size={32} color="#6B7280" />
+                  <Text className="text-gray-600 mt-2 text-center">
+                    {selectedImages.length >= 10
+                      ? 'Maximum 10 images'
+                      : selectedImages.length > 0
+                      ? `Add more photos (${selectedImages.length}/10)`
+                      : 'Tap to add photos from gallery'}
+                  </Text>
+                </TouchableOpacity>
+                
+                {/* Selected Images Grid */}
+                {selectedImages.length > 0 && (
+                  <View className="mt-3">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View className="flex-row">
+                        {selectedImages.map((uri, index) => (
+                          <View key={index} className="mr-2 relative">
+                            <Image
+                              source={{ uri }}
+                              style={{ width: 100, height: 100, borderRadius: 8 }}
+                              resizeMode="cover"
+                            />
+                            <TouchableOpacity
+                              onPress={() => handleRemoveImage(index)}
+                              className="absolute top-1 right-1 bg-red-500 rounded-full p-1"
+                            >
+                              <Ionicons name="close" size={16} color="white" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
               {/* Description */}
               <View className="mb-6">
                 <Text className="text-base font-medium text-gray-900 mb-2">Description (Optional)</Text>
@@ -413,10 +499,10 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
 
               {/* Submit Button */}
               <Button
-                title="Log Hike"
+                title={uploadingImages ? "Uploading images..." : "Log Hike"}
                 onPress={handleSubmit}
-                loading={submitting}
-                disabled={submitting}
+                loading={submitting || uploadingImages}
+                disabled={submitting || uploadingImages}
                 className="w-full"
               />
             </View>
@@ -439,6 +525,7 @@ export const LogHikeModal: React.FC<LogHikeModalProps> = ({
             setHikeDate(new Date());
             setUseAutoStats(true);
             setError(null);
+            setSelectedImages([]);
             onClose();
             if (onSuccess) onSuccess();
           }}

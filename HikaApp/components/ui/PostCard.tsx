@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, ScrollView, Dimensions, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +8,8 @@ import { CommentModal } from './CommentModal';
 import { EditPostModal } from './EditPostModal';
 import { getTrail, likePost, unlikePost, getPost } from '../../services/database';
 import type { Post, Trail } from '../../types';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface PostCardProps {
   post: Post;
@@ -23,6 +25,28 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentPost, setCurrentPost] = useState<Post>(post);
   const [liking, setLiking] = useState(false);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const imageListRef = useRef<FlatList>(null);
+  const postImageListRef = useRef<FlatList>(null);
+
+  // Scroll to selected image when modal opens
+  useEffect(() => {
+    if (imageModalVisible && imageListRef.current && currentPost.images && currentPost.images.length > 0) {
+      // Small delay to ensure FlatList is rendered
+      setTimeout(() => {
+        imageListRef.current?.scrollToIndex({ 
+          index: selectedImageIndex, 
+          animated: false 
+        });
+      }, 100);
+    }
+  }, [imageModalVisible, selectedImageIndex, currentPost.images]);
+
+  // Reset selected image index when post changes
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [currentPost.id]);
 
   useEffect(() => {
     setCurrentPost(post);
@@ -191,6 +215,79 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
         </View>
       )}
 
+      {/* Image Gallery - Swipeable Carousel */}
+      {currentPost.images && currentPost.images.length > 0 && (
+        <View className="relative">
+          <FlatList
+            ref={postImageListRef}
+            data={currentPost.images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item, index) => `post-image-${index}`}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              if (index >= 0 && index < currentPost.images.length) {
+                setSelectedImageIndex(index);
+              }
+            }}
+            getItemLayout={(data, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
+            renderItem={({ item: uri, index }) => (
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedImageIndex(index);
+                  setImageModalVisible(true);
+                }}
+                activeOpacity={0.9}
+                style={{ width: SCREEN_WIDTH }}
+              >
+                <Image
+                  source={{ uri }}
+                  style={{ width: SCREEN_WIDTH, height: 400 }}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            onScrollToIndexFailed={(info) => {
+              const wait = new Promise(resolve => setTimeout(resolve, 500));
+              wait.then(() => {
+                postImageListRef.current?.scrollToOffset({ 
+                  offset: info.averageItemLength * info.index, 
+                  animated: false 
+                });
+              });
+            }}
+          />
+          
+          {/* Image Counter/Dots Indicator */}
+          {currentPost.images.length > 1 && (
+            <View className="absolute bottom-4 right-4 bg-black/60 rounded-full px-3 py-1">
+              <Text className="text-white text-sm font-semibold">
+                {selectedImageIndex + 1} / {currentPost.images.length}
+              </Text>
+            </View>
+          )}
+          
+          {/* Dot Indicators */}
+          {currentPost.images.length > 1 && (
+            <View className="absolute bottom-4 left-0 right-0 flex-row justify-center items-center gap-2">
+              {currentPost.images.map((_, index) => (
+                <View
+                  key={index}
+                  className={`h-2 rounded-full ${
+                    index === selectedImageIndex ? 'bg-white w-6' : 'bg-white/50 w-2'
+                  }`}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Trail Info */}
       {currentPost.trailId && currentPost.trailName && (
         <TouchableOpacity
@@ -300,6 +397,72 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
           onClose={() => setEditModalVisible(false)}
           onUpdate={handlePostUpdate}
         />
+      )}
+
+      {/* Image Viewer Modal */}
+      {currentPost.images && currentPost.images.length > 0 && (
+        <Modal
+          visible={imageModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setImageModalVisible(false)}
+        >
+          <View className="flex-1 bg-black">
+            <TouchableOpacity
+              onPress={() => setImageModalVisible(false)}
+              className="absolute top-12 right-4 z-10 bg-black/50 rounded-full p-2"
+            >
+              <Ionicons name="close" size={28} color="white" />
+            </TouchableOpacity>
+            <FlatList
+              ref={imageListRef}
+              data={currentPost.images}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `image-${index}`}
+              onMomentumScrollEnd={(event) => {
+                const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                if (index >= 0 && index < currentPost.images.length) {
+                  setSelectedImageIndex(index);
+                }
+              }}
+              getItemLayout={(data, index) => ({
+                length: SCREEN_WIDTH,
+                offset: SCREEN_WIDTH * index,
+                index,
+              })}
+              renderItem={({ item: uri }) => (
+                <View style={{ width: SCREEN_WIDTH, height: '100%' }}>
+                  <Image
+                    source={{ uri }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="contain"
+                  />
+                </View>
+              )}
+              onScrollToIndexFailed={(info) => {
+                // Fallback: scroll to offset if scrollToIndex fails
+                const wait = new Promise(resolve => setTimeout(resolve, 500));
+                wait.then(() => {
+                  imageListRef.current?.scrollToOffset({ 
+                    offset: info.averageItemLength * info.index, 
+                    animated: false 
+                  });
+                });
+              }}
+            />
+            {currentPost.images.length > 1 && (
+              <View className="absolute bottom-8 left-0 right-0 items-center">
+                <View className="bg-black/50 rounded-full px-4 py-2">
+                  <Text className="text-white text-sm">
+                    {selectedImageIndex + 1} / {currentPost.images.length}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        </Modal>
       )}
     </View>
   );

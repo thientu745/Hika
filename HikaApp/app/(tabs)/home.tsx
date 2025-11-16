@@ -10,7 +10,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { Redirect, useRouter, Link } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
-import { Input } from "../../components/ui/Input";
 import { PostCard } from "../../components/ui/PostCard";
 import { searchUsers, subscribeToFeedPosts } from "../../services/database";
 import { Image } from "expo-image";
@@ -144,7 +143,7 @@ const Home = () => {
         {/* People search */}
         <View className="mb-4">
           <TextInput
-            className="rounded-lg px-4 py-3 text-hika-darkgreen bg-transparent bg-white border border-white"
+            className="rounded-lg px-4 py-3 text-hika-darkgreen bg-white border border-white"
             placeholder="Search people by name or username"
             placeholderTextColor="#516d58"
             value={searchQuery}

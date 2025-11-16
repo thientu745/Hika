@@ -42,6 +42,29 @@ export const pickImage = async (): Promise<string | null> => {
 };
 
 /**
+ * Pick multiple images from the device
+ */
+export const pickMultipleImages = async (maxImages: number = 10): Promise<string[]> => {
+  const hasPermission = await requestImagePickerPermissions();
+  if (!hasPermission) {
+    return [];
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsMultipleSelection: true,
+    quality: 0.8,
+    selectionLimit: maxImages,
+  });
+
+  if (result.canceled) {
+    return [];
+  }
+
+  return result.assets.map(asset => asset.uri);
+};
+
+/**
  * Upload an image to Firebase Storage
  * @param uri - Local file URI
  * @param path - Storage path (e.g., 'profile-pictures/userId.jpg')
@@ -145,5 +168,63 @@ export const uploadProfilePicture = async (userId: string, imageUri: string): Pr
   console.log('Storage path:', path);
   
   return await uploadImage(imageUri, path);
+};
+
+/**
+ * Upload multiple images for a post
+ * @param userId - User ID
+ * @param postId - Post ID
+ * @param imageUris - Array of local image URIs
+ * @returns Array of download URLs of the uploaded images
+ */
+export const uploadPostImages = async (
+  userId: string,
+  postId: string,
+  imageUris: string[]
+): Promise<string[]> => {
+  const uploadPromises = imageUris.map(async (uri, index) => {
+    // Extract file extension from URI or use jpg as default
+    let extension = 'jpg';
+    const uriParts = uri.split('.');
+    if (uriParts.length > 1) {
+      extension = uriParts[uriParts.length - 1].split('?')[0];
+      if (extension.length > 5) {
+        extension = 'jpg';
+      }
+    }
+    
+    // Generate unique filename with timestamp and index
+    const timestamp = Date.now();
+    const filename = `${timestamp}_${index}.${extension}`;
+    const path = `post-images/${userId}/${postId}/${filename}`;
+    
+    return await uploadImage(uri, path);
+  });
+  
+  return await Promise.all(uploadPromises);
+};
+
+/**
+ * Delete a post image from Firebase Storage
+ * @param imageUrl - Full download URL of the image
+ */
+export const deletePostImage = async (imageUrl: string): Promise<void> => {
+  try {
+    // Extract the path from the full URL
+    // Firebase Storage URLs have the format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?...
+    const url = new URL(imageUrl);
+    const pathMatch = url.pathname.match(/\/o\/(.+)\?/);
+    if (pathMatch) {
+      // Decode the path (Firebase Storage URLs are URL-encoded)
+      const encodedPath = pathMatch[1];
+      const decodedPath = decodeURIComponent(encodedPath);
+      await deleteImage(decodedPath);
+    } else {
+      throw new Error('Invalid image URL format');
+    }
+  } catch (error) {
+    console.error('Error deleting post image:', error);
+    throw error;
+  }
 };
 

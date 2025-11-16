@@ -6,15 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Modal,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, Redirect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
-import { followUser, unfollowUser, getTrail, getUserProfiles } from "../../services/database";
+import { followUser, unfollowUser, getTrail } from "../../services/database";
 import { db } from "../../firebaseConfig";
 import {
   doc,
@@ -139,6 +137,7 @@ const RemoteProfile = () => {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showPosts, setShowPosts] = useState(false);
 
   // Trail lists
   const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
@@ -147,7 +146,7 @@ const RemoteProfile = () => {
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [loadingWishlist, setLoadingWishlist] = useState(false);
   const [loadingCompleted, setLoadingCompleted] = useState(false);
-  
+
   // Social list modals (using new components)
   const [showFollowingList, setShowFollowingList] = useState(false);
   const [showFollowersList, setShowFollowersList] = useState(false);
@@ -254,7 +253,7 @@ const RemoteProfile = () => {
     };
 
     loadFavoriteTrails();
-  }, [showFavorites, profile?.favorites]);
+  }, [showFavorites, profile]);
 
   // Load wishlist trails when section is expanded
   useEffect(() => {
@@ -286,7 +285,7 @@ const RemoteProfile = () => {
     };
 
     loadWishlistTrails();
-  }, [showWishlist, profile?.wishlist]);
+  }, [showWishlist, profile]);
 
   // Load completed trails when section is expanded
   useEffect(() => {
@@ -318,7 +317,7 @@ const RemoteProfile = () => {
     };
 
     loadCompletedTrails();
-  }, [showCompleted, profile?.completed]);
+  }, [showCompleted, profile]);
   const isOwn = user?.uid === uid;
 
   // Local following state for optimistic UI updates
@@ -452,6 +451,28 @@ const RemoteProfile = () => {
             {profile.displayName}
           </Text>
 
+          {/* Followers & Following Stats (Instagram style) */}
+          <View className="flex-row items-center justify-center mt-4 mb-2">
+            <TouchableOpacity
+              onPress={() => setShowFollowersList(true)}
+              className="items-center mx-6"
+            >
+              <Text className="text-xl font-bold text-white">
+                {profile?.followers?.length || 0}
+              </Text>
+              <Text className="text-sm text-gray-300 mt-1">Followers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowFollowingList(true)}
+              className="items-center mx-6"
+            >
+              <Text className="text-xl font-bold text-white">
+                {profile?.following?.length || 0}
+              </Text>
+              <Text className="text-sm text-gray-300 mt-1">Following</Text>
+            </TouchableOpacity>
+          </View>
+
           {profile.bio && (
             <Text className="text-gray-300 mt-2 text-center">
               {profile.bio}
@@ -516,33 +537,6 @@ const RemoteProfile = () => {
               </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Social Stats */}
-        <View className="bg-gray-50 rounded-lg p-4 mb-4">
-          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">
-            Social
-          </Text>
-          <View className="flex-row justify-around">
-            <TouchableOpacity
-              onPress={() => setShowFollowingList(true)}
-              className="items-center"
-            >
-              <Text className="text-2xl font-bold text-hika-darkgreen">
-                {profile?.following?.length || 0}
-              </Text>
-              <Text className="text-gray-600 text-sm">Following</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowFollowersList(true)}
-              className="items-center"
-            >
-              <Text className="text-2xl font-bold text-hika-darkgreen">
-                {profile?.followers?.length || 0}
-              </Text>
-              <Text className="text-gray-600 text-sm">Followers</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -872,37 +866,67 @@ const RemoteProfile = () => {
           )}
         </View>
 
-
         {/* Posts */}
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-white mb-2">Posts</Text>
-          {loadingPosts ? (
-            <Text className="text-gray-500">Loading posts...</Text>
-          ) : posts.length === 0 ? (
-            <Text className="text-gray-500">No posts yet.</Text>
-          ) : (
-            posts
-              .filter((p) => p.id !== "DELETED")
-              .map((p) => (
-                <PostCard
-                  key={p.id}
-                  post={p}
-                  onUpdate={(updatedPost) => {
-                    // Handle post deletion
-                    if (updatedPost && updatedPost.id === "DELETED") {
-                      setPosts((prev) =>
-                        prev.filter((post) => post.id !== p.id)
-                      );
-                    } else if (updatedPost) {
-                      setPosts((prev) =>
-                        prev.map((post) =>
-                          post.id === p.id ? updatedPost : post
-                        )
-                      );
-                    }
-                  }}
-                />
-              ))
+          <TouchableOpacity
+            onPress={() => setShowPosts(!showPosts)}
+            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="document-text" size={20} color="#10b981" />
+              <Text className="text-gray-900 font-semibold ml-2">
+                Posts ({posts.filter((p) => p.id !== "DELETED").length})
+              </Text>
+            </View>
+            <Ionicons
+              name={showPosts ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
+
+          {showPosts && (
+            <View className="mt-2">
+              {loadingPosts ? (
+                <View className="py-8 items-center bg-gray-50 rounded-lg">
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text className="text-gray-500 text-sm mt-2">
+                    Loading posts...
+                  </Text>
+                </View>
+              ) : posts.filter((p) => p.id !== "DELETED").length === 0 ? (
+                <View className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <Text className="text-gray-500 text-center">
+                    No posts yet.
+                  </Text>
+                </View>
+              ) : (
+                <View>
+                  {posts
+                    .filter((p) => p.id !== "DELETED")
+                    .map((p) => (
+                      <PostCard
+                        key={p.id}
+                        post={p}
+                        onUpdate={(updatedPost) => {
+                          // Handle post deletion
+                          if (updatedPost && updatedPost.id === "DELETED") {
+                            setPosts((prev) =>
+                              prev.filter((post) => post.id !== p.id)
+                            );
+                          } else if (updatedPost) {
+                            setPosts((prev) =>
+                              prev.map((post) =>
+                                post.id === p.id ? updatedPost : post
+                              )
+                            );
+                          }
+                        }}
+                      />
+                    ))}
+                </View>
+              )}
+            </View>
           )}
         </View>
 
@@ -949,22 +973,22 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContentWrapper: {
-    width: '100%',
-    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+    width: "100%",
+    maxHeight: Platform.OS === "web" ? "90%" : "85%",
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    width: '100%',
-    shadowColor: '#000',
+    width: "100%",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: -2,
@@ -974,27 +998,27 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: "#E5E7EB",
   },
   modalHeaderText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: "bold",
+    color: "#111827",
   },
   modalScrollView: {
-    maxHeight: Platform.OS === 'web' ? 600 : 500,
+    maxHeight: Platform.OS === "web" ? 600 : 500,
   },
   modalScrollContent: {
     paddingBottom: 20,
   },
   safeAreaBottom: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
 });
 

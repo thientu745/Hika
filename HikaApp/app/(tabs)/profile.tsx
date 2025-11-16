@@ -16,7 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useAuth } from "../../contexts/AuthContext";
 import { LoadingScreen } from "../../components/ui/LoadingScreen";
-import { PostComposer } from "../../components/ui/PostComposer";
 import { PostCard } from "../../components/ui/PostCard";
 import { FollowingList } from "../../components/ui/FollowingList";
 import { FollowersList } from "../../components/ui/FollowersList";
@@ -132,6 +131,7 @@ const Profile = () => {
   const [showFavorites, setShowFavorites] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showPosts, setShowPosts] = useState(false);
   
   // Trail lists
   const [favoriteTrails, setFavoriteTrails] = useState<Trail[]>([]);
@@ -503,14 +503,14 @@ const Profile = () => {
           <View className="flex-row items-center justify-center mt-4 mb-2">
             <TouchableOpacity
               onPress={() => setShowFollowersList(true)}
-              className="items-center mx-4"
+              className="items-center mx-6"
             >
               <Text className="text-xl font-bold text-white">{followers.length}</Text>
               <Text className="text-sm text-gray-300 mt-1">Followers</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowFollowingList(true)}
-              className="items-center mx-4"
+              className="items-center mx-6"
             >
               <Text className="text-xl font-bold text-white">{following.length}</Text>
               <Text className="text-sm text-gray-300 mt-1">Following</Text>
@@ -521,24 +521,8 @@ const Profile = () => {
               Loading profile data...
             </Text>
           )}
-          {bio && <Text className="text-gray-600 mt-2 text-center">{bio}</Text>}
+          {bio && <Text className="text-gray-300 mt-2 text-center">{bio}</Text>}
         </View>
-
-        {/* Composer (create posts) */}
-        {user && (
-          <View className="mb-4">
-            <PostComposer
-              onPosted={() => {
-                // Refresh posts after creating a new post
-                if (user?.uid) {
-                  getUserPosts(user.uid, 100)
-                    .then(setUserPosts)
-                    .catch(console.error);
-                }
-              }}
-            />
-          </View>
-        )}
 
         {/* Stats */}
         <View className="bg-gray-50 rounded-lg p-4 mb-4">
@@ -560,31 +544,6 @@ const Profile = () => {
               </Text>
               <Text className="text-gray-600 text-sm">Total Time</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Social Stats */}
-        <View className="bg-gray-50 rounded-lg p-4 mb-6">
-          <Text className="text-lg font-semibold text-hika-darkgreen mb-3">Social</Text>
-          <View className="flex-row justify-around">
-            <TouchableOpacity
-              onPress={() => setShowFollowingList(true)}
-              className="items-center"
-            >
-              <Text className="text-2xl font-bold text-hika-darkgreen">
-                {userProfile?.following?.length || 0}
-              </Text>
-              <Text className="text-gray-600 text-sm">Following</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowFollowersList(true)}
-              className="items-center"
-            >
-              <Text className="text-2xl font-bold text-hika-darkgreen">
-                {userProfile?.followers?.length || 0}
-              </Text>
-              <Text className="text-gray-600 text-sm">Followers</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -981,42 +940,62 @@ const Profile = () => {
 
         {/* Posts */}
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-white mb-3">My Posts</Text>
-          {loadingPosts ? (
-            <View className="py-8 items-center">
-              <ActivityIndicator size="small" color="#10b981" />
-              <Text className="text-gray-500 text-sm mt-2">
-                Loading posts...
+          <TouchableOpacity
+            onPress={() => setShowPosts(!showPosts)}
+            className="bg-gray-50 rounded-lg p-4 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="document-text" size={20} color="#10b981" />
+              <Text className="text-gray-900 font-semibold ml-2">
+                My Posts ({userPosts.length})
               </Text>
             </View>
-          ) : userPosts.length === 0 ? (
-            <View className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <Text className="text-gray-500 text-center">
-                No posts yet. Create your first post!
-              </Text>
-            </View>
-          ) : (
-            <View>
-              {userPosts
-                .sort(
-                  (a, b) =>
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
-                )
-                .map((post) => (
-                  <PostCard 
-                    key={post.id} 
-                    post={post} 
-                    onUpdate={(updatedPost) => {
-                      // Handle post deletion
-                      if (updatedPost && updatedPost.id === 'DELETED') {
-                        setUserPosts(prev => prev.filter(p => p.id !== post.id));
-                      } else if (updatedPost) {
-                        setUserPosts(prev => prev.map(p => p.id === post.id ? updatedPost : p));
-                      }
-                    }}
-                  />
-                ))}
+            <Ionicons
+              name={showPosts ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
+
+          {showPosts && (
+            <View className="mt-2">
+              {loadingPosts ? (
+                <View className="py-8 items-center bg-gray-50 rounded-lg">
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text className="text-gray-500 text-sm mt-2">
+                    Loading posts...
+                  </Text>
+                </View>
+              ) : userPosts.length === 0 ? (
+                <View className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <Text className="text-gray-500 text-center">
+                    No posts yet. Create your first post!
+                  </Text>
+                </View>
+              ) : (
+                <View>
+                  {userPosts
+                    .sort(
+                      (a, b) =>
+                        new Date(b.createdAt).getTime() -
+                        new Date(a.createdAt).getTime()
+                    )
+                    .map((post) => (
+                      <PostCard 
+                        key={post.id} 
+                        post={post} 
+                        onUpdate={(updatedPost) => {
+                          // Handle post deletion
+                          if (updatedPost && updatedPost.id === 'DELETED') {
+                            setUserPosts(prev => prev.filter(p => p.id !== post.id));
+                          } else if (updatedPost) {
+                            setUserPosts(prev => prev.map(p => p.id === post.id ? updatedPost : p));
+                          }
+                        }}
+                      />
+                    ))}
+                </View>
+              )}
             </View>
           )}
         </View>

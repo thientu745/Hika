@@ -9,10 +9,13 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { updatePost, deletePost } from '../../services/database';
 import { searchTrailsFromFirestore } from '../../services/trailSearch';
+import { pickMultipleImages, uploadPostImages } from '../../services/storage';
+import { useAuth } from '../../contexts/AuthContext';
 import type { Post, Trail } from '../../types';
 
 interface EditPostModalProps {
@@ -28,6 +31,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
   onClose,
   onUpdate,
 }) => {
+  const { user } = useAuth();
   const [description, setDescription] = useState(post.description || '');
   const [distance, setDistance] = useState(
     post.distance ? (post.distance / 1000).toFixed(2) : ''
@@ -45,6 +49,9 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
   const [trailSearchResults, setTrailSearchResults] = useState<Trail[]>([]);
   const [searchingTrails, setSearchingTrails] = useState(false);
   const [selectedTrail, setSelectedTrail] = useState<Trail | null>(null);
+  const [existingImages, setExistingImages] = useState<string[]>(post.images || []);
+  const [newImages, setNewImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -56,6 +63,8 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
       setSelectedTrail(null);
       setShowTrailSearch(false);
       setTrailSearchQuery('');
+      setExistingImages(post.images || []);
+      setNewImages([]);
     }
   }, [visible, post]);
 
@@ -102,9 +111,39 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
     setTrailSearchResults([]);
   };
 
+  const handlePickImages = async () => {
+    try {
+      const maxImages = 10 - (existingImages.length + newImages.length);
+      if (maxImages <= 0) {
+        Alert.alert('Limit reached', 'You can select up to 10 images per post.');
+        return;
+      }
+      const images = await pickMultipleImages(maxImages);
+      if (images.length > 0) {
+        setNewImages(prev => [...prev, ...images]);
+      }
+    } catch (error) {
+      console.error('Error picking images:', error);
+      Alert.alert('Error', 'Failed to pick images. Please try again.');
+    }
+  };
+
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveNewImage = (index: number) => {
+    setNewImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSave = async () => {
     if (!description.trim()) {
       Alert.alert('Error', 'Description cannot be empty');
+      return;
+    }
+
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to edit posts');
       return;
     }
 
@@ -154,6 +193,25 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
       } else {
         updates.time = null;
       }
+
+      // Handle images
+      let finalImages = [...existingImages];
+      
+      // Upload new images if any
+      if (newImages.length > 0) {
+        try {
+          setUploadingImages(true);
+          const uploadedUrls = await uploadPostImages(user.uid, post.id, newImages);
+          finalImages = [...existingImages, ...uploadedUrls];
+        } catch (error) {
+          console.error('Error uploading new images:', error);
+          Alert.alert('Warning', 'Some images failed to upload. The post will be updated with existing images.');
+        } finally {
+          setUploadingImages(false);
+        }
+      }
+      
+      updates.images = finalImages;
 
       await updatePost(post.id, updates);
 
@@ -234,6 +292,80 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
               className="border border-gray-300 rounded-lg p-3 min-h-[100px] text-gray-900"
               textAlignVertical="top"
             />
+          </View>
+
+          {/* Photo Gallery */}
+          <View className="mb-4">
+            <Text className="text-sm font-medium text-gray-700 mb-2">
+              Photos
+            </Text>
+            
+            {/* Existing Images */}
+            {existingImages.length > 0 && (
+              <View className="mb-3">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row">
+                    {existingImages.map((uri, index) => (
+                      <View key={`existing-${index}`} className="mr-2 relative">
+                        <Image
+                          source={{ uri }}
+                          style={{ width: 100, height: 100, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleRemoveExistingImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 rounded-full p-1"
+                        >
+                          <Ionicons name="close" size={16} color="white" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {/* New Images */}
+            {newImages.length > 0 && (
+              <View className="mb-3">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row">
+                    {newImages.map((uri, index) => (
+                      <View key={`new-${index}`} className="mr-2 relative">
+                        <Image
+                          source={{ uri }}
+                          style={{ width: 100, height: 100, borderRadius: 8 }}
+                          resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                          onPress={() => handleRemoveNewImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 rounded-full p-1"
+                        >
+                          <Ionicons name="close" size={16} color="white" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Add Images Button */}
+            <TouchableOpacity
+              onPress={handlePickImages}
+              disabled={(existingImages.length + newImages.length) >= 10}
+              className="border-2 border-dashed border-gray-300 rounded-lg p-3 items-center justify-center"
+              style={(existingImages.length + newImages.length) >= 10 && { opacity: 0.5 }}
+            >
+              <Ionicons name="images-outline" size={24} color="#6B7280" />
+              <Text className="text-gray-600 mt-1 text-center text-sm">
+                {(existingImages.length + newImages.length) >= 10
+                  ? 'Maximum 10 images'
+                  : (existingImages.length + newImages.length) > 0
+                  ? `Add more photos (${existingImages.length + newImages.length}/10)`
+                  : 'Add photos from gallery'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Trail Selection */}
@@ -380,13 +512,15 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSave}
-              disabled={saving}
+              disabled={saving || uploadingImages}
               className="flex-1 bg-green-500 rounded-lg py-3 items-center"
             >
-              {saving ? (
+              {(saving || uploadingImages) ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text className="text-white font-semibold">Save Changes</Text>
+                <Text className="text-white font-semibold">
+                  {uploadingImages ? 'Uploading...' : 'Save Changes'}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
