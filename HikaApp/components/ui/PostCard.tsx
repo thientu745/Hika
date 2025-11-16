@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import TrailMap from '../maps/TrailMap';
-import { SharePostModal } from './SharePostModal';
 import { CommentModal } from './CommentModal';
+import { EditPostModal } from './EditPostModal';
 import { getTrail, likePost, unlikePost, getPost } from '../../services/database';
 import type { Post, Trail } from '../../types';
 
@@ -19,8 +19,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
   const { user, userProfile } = useAuth();
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loadingTrail, setLoadingTrail] = useState(false);
-  const [shareModalVisible, setShareModalVisible] = useState(false);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentPost, setCurrentPost] = useState<Post>(post);
   const [liking, setLiking] = useState(false);
 
@@ -128,8 +128,21 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
     }
   };
 
+  const handlePostUpdate = (updatedPost: Post | null) => {
+    if (updatedPost === null) {
+      // Post was deleted
+      onUpdate?.({ ...currentPost, id: 'DELETED' } as Post);
+    } else {
+      // Post was updated
+      setCurrentPost(updatedPost);
+      onUpdate?.(updatedPost);
+    }
+    setEditModalVisible(false);
+  };
+
   const hasStats = currentPost.distance !== undefined || currentPost.elevationGain !== undefined || currentPost.time !== undefined;
   const isLiked = user && currentPost.likes?.includes(user.uid);
+  const isOwner = user && currentPost.userId === user.uid;
 
   return (
     <View className="mb-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -160,6 +173,15 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
           <Text className="text-gray-900 font-semibold">{currentPost.userDisplayName}</Text>
           <Text className="text-gray-500 text-xs">{formatDate(currentPost.createdAt)}</Text>
         </TouchableOpacity>
+        {/* Edit button for post owner */}
+        {isOwner && (
+          <TouchableOpacity
+            onPress={() => setEditModalVisible(true)}
+            className="ml-2 p-2"
+          >
+            <Ionicons name="create-outline" size={20} color="#6B7280" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Description */}
@@ -255,26 +277,12 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
         </TouchableOpacity>
         <TouchableOpacity 
           onPress={() => setCommentModalVisible(true)}
-          className="flex-row items-center mr-6"
+          className="flex-row items-center"
         >
           <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
           <Text className="text-gray-600 text-sm ml-2">{currentPost.comments?.length || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setShareModalVisible(true)}
-          className="flex-row items-center"
-        >
-          <Ionicons name="share-outline" size={20} color="#6B7280" />
-          <Text className="text-gray-600 text-sm ml-2">{currentPost.shares || 0}</Text>
-        </TouchableOpacity>
       </View>
-
-      {/* Share Modal */}
-      <SharePostModal
-        visible={shareModalVisible}
-        post={currentPost}
-        onClose={() => setShareModalVisible(false)}
-      />
 
       {/* Comment Modal */}
       <CommentModal
@@ -283,6 +291,16 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
         onClose={() => setCommentModalVisible(false)}
         onCommentAdded={handleCommentAdded}
       />
+
+      {/* Edit Post Modal */}
+      {isOwner && (
+        <EditPostModal
+          visible={editModalVisible}
+          post={currentPost}
+          onClose={() => setEditModalVisible(false)}
+          onUpdate={handlePostUpdate}
+        />
+      )}
     </View>
   );
 };
