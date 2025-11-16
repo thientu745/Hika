@@ -154,28 +154,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // Normalize email (trim and lowercase)
+    const normalizedEmail = email.trim().toLowerCase();
+    
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, normalizedEmail, password);
       // User profile will be loaded by onAuthStateChanged
     } catch (error: any) {
-      // Provide more helpful error messages
-      let errorMessage = 'An error occurred during sign in';
+      // Log full error for debugging
+      console.error('Firebase sign in error:', {
+        code: error?.code,
+        message: error?.message,
+        fullError: error,
+      });
       
-      if (error.code === 'auth/user-not-found') {
+      // Provide more helpful error messages
+      let errorMessage = 'Invalid email or password. Please try again.';
+      
+      // Handle authentication errors with specific messages
+      // Note: Firebase's Email Enumeration Protection prevents us from reliably checking if email exists
+      // So we only provide specific messages when Firebase gives us clear error codes
+      if (error?.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email. Please sign up first.';
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (error?.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password. Please try again.';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (error?.code === 'auth/invalid-credential') {
+        // auth/invalid-credential is used for both wrong password and non-existent email
+        // With Email Enumeration Protection, we can't differentiate, so use generic message
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (error?.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address. Please check your email and try again.';
-      } else if (error.code === 'auth/user-disabled') {
+      } else if (error?.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled. Please contact support.';
-      } else if (error.code === 'auth/network-request-failed') {
+      } else if (error?.code === 'auth/network-request-failed') {
         errorMessage = 'Network error. Please check your internet connection and try again.';
-      } else if (error.message) {
+      } else if (error?.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (error?.message) {
         errorMessage = error.message;
       }
       
-      throw new Error(errorMessage);
+      // Always throw an error with a message
+      const loginError = new Error(errorMessage);
+      console.error('Throwing login error:', errorMessage);
+      throw loginError;
     }
   };
 

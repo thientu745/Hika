@@ -7,6 +7,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
   const router = useRouter();
 
@@ -16,13 +17,19 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
+    setError(null); // Clear previous errors
+    
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      const errorMsg = 'Please fill in all fields';
+      setError(errorMsg);
+      Alert.alert('Error', errorMsg);
       return;
     }
 
     if (!validateEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      const errorMsg = 'Please enter a valid email address';
+      setError(errorMsg);
+      Alert.alert('Error', errorMsg);
       return;
     }
 
@@ -31,7 +38,17 @@ export default function LoginScreen() {
       await signIn(email.trim().toLowerCase(), password);
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'An error occurred during login');
+      // Ensure error message is always displayed
+      const errorMessage = error?.message || error?.toString() || 'Invalid email or password. Please try again.';
+      console.error('Login error:', error);
+      console.error('Error code:', error?.code);
+      console.error('Error message:', errorMessage);
+      
+      // Set error state for on-screen display
+      setError(errorMessage);
+      
+      // Also show Alert as backup
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -51,7 +68,10 @@ export default function LoginScreen() {
             className="border border-gray-300 rounded-lg px-4 py-3 text-base"
             placeholder="Enter your email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              setError(null); // Clear error when user types
+            }}
             autoCapitalize="none"
             keyboardType="email-address"
             autoComplete="email"
@@ -59,18 +79,28 @@ export default function LoginScreen() {
         </View>
 
         {/* Password Input */}
-        <View className="mb-6">
+        <View className="mb-4">
           <Text className="text-gray-700 mb-2 font-medium">Password</Text>
           <TextInput
             className="border border-gray-300 rounded-lg px-4 py-3 text-base"
             placeholder="Enter your password"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              setError(null); // Clear error when user types
+            }}
             secureTextEntry
             autoCapitalize="none"
             autoComplete="password"
           />
         </View>
+
+        {/* Error Message */}
+        {error && (
+          <View className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <Text className="text-red-600 text-sm font-medium">{error}</Text>
+          </View>
+        )}
 
         {/* Login Button */}
         <TouchableOpacity
