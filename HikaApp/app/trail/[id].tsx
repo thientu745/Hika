@@ -1,5 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -105,10 +104,10 @@ const TrailDetail = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" />
       {/* Header */}
-      <View className="bg-white border-b border-gray-200 px-4 pt-2 pb-3 flex-row items-center" style={{ paddingTop: Platform.OS === 'ios' ? 8 : 16 }}>
+      <View className="bg-white border-b border-gray-200 px-4 py-3 flex-row items-center">
         <TouchableOpacity onPress={() => router.back()} className="mr-4" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
@@ -265,7 +264,7 @@ const TrailDetail = () => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

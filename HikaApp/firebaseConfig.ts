@@ -3,9 +3,10 @@ import { initializeApp } from "firebase/app";
 // import { getAnalytics } from "firebase/analytics"; <- Don't need analytics
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
-import { getAuth } from "firebase/auth";
+import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 
 // Your web app's Firebase configuration
@@ -24,8 +25,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // const analytics = getAnalytics(app); <- Don't need analytics
 
-// Export authentication
-export const auth = getAuth(app);
+// Initialize Auth with AsyncStorage persistence for React Native
+// Use initializeAuth for React Native to enable persistence
+// If auth is already initialized, getAuth will be used as fallback
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+  });
+} catch (error: any) {
+  // If auth is already initialized, use getAuth instead
+  if (error.code === 'auth/already-initialized') {
+    const { getAuth } = require('firebase/auth');
+    auth = getAuth(app);
+  } else {
+    throw error;
+  }
+}
+export { auth };
 
 // Export Firestore database
 export const db = getFirestore(app);
