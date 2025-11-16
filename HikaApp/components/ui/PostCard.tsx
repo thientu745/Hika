@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import TrailMap from '../maps/TrailMap';
-import { getTrail } from '../../services/database';
-import type { Post, Trail } from '../../types';
+import { getTrail, likePost, unlikePost, addComment } from '../../services/database';
+import type { Post, Trail, Comment } from '../../types';
 
 interface PostCardProps {
   post: Post;
@@ -16,6 +16,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useAuth();
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loadingTrail, setLoadingTrail] = useState(false);
+  const [likes, setLikes] = useState<string[]>(post.likes || []);
+  const [isLiking, setIsLiking] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>(post.comments || []);
+  const [commentText, setCommentText] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+
+  // Update likes when post data changes
+  useEffect(() => {
+    setLikes(post.likes || []);
+  }, [post.likes]);
+
+  // Update comments when post data changes
+  useEffect(() => {
+    setComments(post.comments || []);
+  }, [post.comments]);
 
   useEffect(() => {
     if (post.trailId) {
@@ -36,6 +52,73 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
       console.error('Error loading trail for post:', err);
     } finally {
       setLoadingTrail(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!user || isLiking) {
+      return;
+    }
+
+    const wasLiked = likes.includes(user.uid);
+    const previousLikes = likes;
+
+    // Optimistic update
+    if (wasLiked) {
+      setLikes(likes.filter(id => id !== user.uid));
+    } else {
+      setLikes([...likes, user.uid]);
+    }
+
+    setIsLiking(true);
+    try {
+      if (wasLiked) {
+        await unlikePost(post.id, user.uid);
+      } else {
+        await likePost(post.id, user.uid);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Revert to previous state on error
+      setLikes(previousLikes);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!user || !commentText.trim() || isPosting) {
+      return;
+    }
+
+    const tempCommentText = commentText;
+    setCommentText('');
+
+    setIsPosting(true);
+    try {
+      const newComment: Omit<Comment, 'id' | 'createdAt'> = {
+        userId: user.uid,
+        userDisplayName: user.displayName || 'User',
+        userProfilePictureUrl: user.photoURL || '',
+        text: tempCommentText,
+      };
+      
+      await addComment(post.id, newComment);
+      
+      // Add the comment locally with current timestamp
+      const commentWithTimestamp: Comment = {
+        id: Date.now().toString(),
+        ...newComment,
+        createdAt: new Date(),
+      };
+      
+      setComments([...comments, commentWithTimestamp]);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      // Restore the text if there was an error
+      setCommentText(tempCommentText);
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -77,7 +160,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
     <View className="mb-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-100">
+      <TouchableOpacity 
+        onPress={() => router.push(`/profile/${post.userId}` as any)}
+        className="flex-row items-center px-4 py-3 border-b border-gray-100"
+      >
         {post.userProfilePictureUrl ? (
           <Image
             source={{ uri: post.userProfilePictureUrl }}
@@ -94,7 +180,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           <Text className="text-gray-900 font-semibold">{post.userDisplayName}</Text>
           <Text className="text-gray-500 text-xs">{formatDate(post.createdAt)}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Description */}
       {post.description && (
@@ -171,23 +257,97 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
       {/* Engagement Bar */}
       <View className="flex-row items-center px-4 py-2 border-t border-gray-100">
-        <TouchableOpacity className="flex-row items-center mr-6">
+        <TouchableOpacity 
+          onPress={handleToggleLike}
+          disabled={isLiking}
+          className="flex-row items-center mr-6"
+        >
           <Ionicons 
-            name={user && post.likes?.includes(user.uid) ? "heart" : "heart-outline"} 
+            name={user && likes?.includes(user.uid) ? "heart" : "heart-outline"} 
             size={20} 
-            color={user && post.likes?.includes(user.uid) ? "#EF4444" : "#6B7280"} 
+            color={user && likes?.includes(user.uid) ? "#EF4444" : "#6B7280"} 
           />
-          <Text className="text-gray-600 text-sm ml-2">{post.likes?.length || 0}</Text>
+          <Text className="text-gray-600 text-sm ml-2">{likes?.length || 0}</Text>
         </TouchableOpacity>
-        <TouchableOpacity className="flex-row items-center mr-6">
+        <TouchableOpacity 
+          onPress={() => setShowComments(!showComments)}
+          className="flex-row items-center mr-6"
+        >
           <Ionicons name="chatbubble-outline" size={20} color="#6B7280" />
-          <Text className="text-gray-600 text-sm ml-2">{post.comments?.length || 0}</Text>
+          <Text className="text-gray-600 text-sm ml-2">{comments?.length || 0}</Text>
         </TouchableOpacity>
         <TouchableOpacity className="flex-row items-center">
           <Ionicons name="share-outline" size={20} color="#6B7280" />
           <Text className="text-gray-600 text-sm ml-2">{post.shares || 0}</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Comments Section */}
+      {showComments && (
+        <View className="border-t border-gray-100 bg-gray-50">
+          {/* Comment Input */}
+          {user && (
+            <View className="px-4 py-3 border-b border-gray-100 flex-row items-center">
+              <TextInput
+                placeholder="Add a comment..."
+                placeholderTextColor="#9CA3AF"
+                value={commentText}
+                onChangeText={setCommentText}
+                className="flex-1 bg-white rounded-lg px-3 py-2 text-gray-900 text-sm border border-gray-200"
+              />
+              <TouchableOpacity
+                onPress={handleAddComment}
+                disabled={isPosting || !commentText.trim()}
+                className="ml-2 p-2"
+              >
+                <Ionicons 
+                  name="send" 
+                  size={20} 
+                  color={isPosting || !commentText.trim() ? "#D1D5DB" : "#10b981"} 
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Comments List */}
+          <ScrollView className="max-h-80">
+            {comments.length === 0 ? (
+              <View className="px-4 py-6 items-center">
+                <Text className="text-gray-500 text-sm">No comments yet</Text>
+              </View>
+            ) : (
+              comments.map((comment) => (
+                <View key={comment.id} className="px-4 py-3 border-b border-gray-100 last:border-b-0">
+                  <View className="flex-row items-start">
+                    {comment.userProfilePictureUrl ? (
+                      <Image
+                        source={{ uri: comment.userProfilePictureUrl }}
+                        className="w-8 h-8 rounded-full mr-2"
+                      />
+                    ) : (
+                      <View className="w-8 h-8 bg-green-500 rounded-full items-center justify-center mr-2">
+                        <Text className="text-white font-bold text-xs">
+                          {comment.userDisplayName?.charAt(0).toUpperCase() || 'U'}
+                        </Text>
+                      </View>
+                    )}
+                    <View className="flex-1">
+                      <Text className="text-gray-900 font-semibold text-sm">{comment.userDisplayName}</Text>
+                      <Text className="text-gray-700 text-sm mt-1">{comment.text}</Text>
+                      <Text className="text-gray-500 text-xs mt-1">
+                        {comment.createdAt instanceof Date 
+                          ? comment.createdAt.toLocaleDateString()
+                          : new Date(comment.createdAt).toLocaleDateString()
+                        }
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 };
