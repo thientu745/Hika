@@ -17,9 +17,16 @@ service cloud.firestore {
       // Anyone authenticated can read user profiles
       allow read: if isAuthenticated();
       
-      // Users can only create/update their own profile
+      // Users can only create their own profile
       allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId);
+      
+      // Users can update their own profile completely
+      // OR users can update only the 'followers' array of other users' profiles (for follow/unfollow)
+      allow update: if isOwner(userId) || 
+        (isAuthenticated() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers', 'updatedAt']));
+      
+      // Users can only delete their own profile
       allow delete: if isOwner(userId);
     }
     

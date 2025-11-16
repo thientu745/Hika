@@ -20,6 +20,7 @@ import {
   increment,
   arrayUnion,
   arrayRemove,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import type {
@@ -167,6 +168,39 @@ export const unfollowUser = async (currentUserId: string, targetUserId: string):
   ]);
 };
 
+/**
+ * Search users by displayName or username (client-side filtering).
+ * Note: Firestore recommended approach is to maintain search index (Algolia) for large datasets.
+ */
+export const searchUsers = async (searchTerm?: string, limitCount: number = 20): Promise<UserProfile[]> => {
+  const usersRef = collection(db, 'users');
+  const querySnapshot = await getDocs(usersRef);
+  const users: UserProfile[] = [];
+
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    users.push({
+      uid: docSnap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    } as UserProfile);
+  });
+
+  if (!searchTerm || searchTerm.trim() === '') {
+    return users.slice(0, limitCount);
+  }
+
+  const lower = searchTerm.toLowerCase();
+  const filtered = users.filter((u) => {
+    const dn = (u.displayName || '').toLowerCase();
+    const un = (u as any).username ? (u as any).username.toLowerCase() : '';
+    return dn.includes(lower) || un.includes(lower);
+  });
+
+  return filtered.slice(0, limitCount);
+};
+
 // ==================== Trail Operations ====================
 
 /**
@@ -211,10 +245,49 @@ export const searchTrails = async (
   limitCount: number = 20
 ): Promise<Trail[]> => {
   const trailsRef = collection(db, 'trails');
-  let q = query(trailsRef, orderBy('createdAt', 'desc'), limit(limitCount));
+  let q;
 
-  if (location) {
-    q = query(trailsRef, where('location', '==', location), orderBy('createdAt', 'desc'), limit(limitCount));
+  // Normalize location for matching (handle "Oregon" vs "Oregon, USA")
+  const normalizedLocation = location ? location.trim() : undefined;
+
+  // Build query based on available filters
+  // Note: When we have a search term, we fetch more trails and filter client-side
+  // This ensures we don't miss trails due to exact match requirements in Firestore
+  // For location and difficulty, we do client-side filtering to handle format variations
+  if (searchTerm) {
+    // When searching by name, fetch many trails and filter everything client-side
+    // This ensures we find all matching trails regardless of difficulty/location format
+    let fetchLimit = limitCount * 10;
+    if (normalizedLocation) {
+      fetchLimit = limitCount * 15; // Even more when searching by name + location
+    }
+    q = query(trailsRef, orderBy('createdAt', 'desc'), limit(fetchLimit));
+  } else if (difficulty && normalizedLocation) {
+    // Both difficulty and location, no search term - use difficulty in query, filter location client-side
+    const fetchLimit = limitCount * 6;
+    q = query(
+      trailsRef,
+      where('difficulty', '==', difficulty),
+      orderBy('createdAt', 'desc'),
+      limit(fetchLimit)
+    );
+  } else if (difficulty) {
+    // Only difficulty, no search term - use it in query
+    const fetchLimit = limitCount * 5;
+    q = query(
+      trailsRef,
+      where('difficulty', '==', difficulty),
+      orderBy('createdAt', 'desc'),
+      limit(fetchLimit)
+    );
+  } else {
+    // No difficulty or search term - if we have a location, fetch more trails
+    let fetchLimit = limitCount * 3;
+    if (normalizedLocation) {
+      // When searching by location only, fetch many more trails to ensure we get all matches
+      fetchLimit = limitCount * 20; // Fetch even more when searching by location only
+    }
+    q = query(trailsRef, orderBy('createdAt', 'desc'), limit(fetchLimit));
   }
 
   const querySnapshot = await getDocs(q);
@@ -230,18 +303,47 @@ export const searchTrails = async (
     } as Trail);
   });
 
-  // Basic client-side filtering for search term
+  // Client-side filtering for search term, location, and difficulty (to handle format variations and edge cases)
+  let filteredTrails = trails;
+
+  // Filter by difficulty if provided (client-side as fallback to catch any edge cases)
+  // This ensures trails with slightly different difficulty values or formatting are still found
+  if (difficulty) {
+    filteredTrails = filteredTrails.filter((trail) => {
+      if (!trail.difficulty) return false;
+      return trail.difficulty.toLowerCase() === difficulty.toLowerCase();
+    });
+  }
+
+  // Filter by location if provided (handle format variations like "Oregon" vs "Oregon, USA")
+  if (normalizedLocation) {
+    const lowerLocation = normalizedLocation.toLowerCase();
+    filteredTrails = filteredTrails.filter((trail) => {
+      if (!trail.location) return false;
+      const trailLocation = trail.location.toLowerCase();
+      // Check if location matches exactly or if trail location contains the search location
+      // This handles "Oregon" matching "Oregon, USA" and vice versa
+      return trailLocation === lowerLocation || 
+             trailLocation.includes(lowerLocation) || 
+             lowerLocation.includes(trailLocation.split(',')[0].trim());
+    });
+  }
+
+  // Filter by search term if provided
   if (searchTerm) {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    return trails.filter(
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    filteredTrails = filteredTrails.filter(
       (trail) =>
-        trail.name.toLowerCase().includes(lowerSearchTerm) ||
-        trail.description.toLowerCase().includes(lowerSearchTerm) ||
-        trail.location.toLowerCase().includes(lowerSearchTerm)
+        (trail.name && trail.name.toLowerCase().includes(lowerSearchTerm)) ||
+        (trail.description && trail.description.toLowerCase().includes(lowerSearchTerm)) ||
+        (trail.location && trail.location.toLowerCase().includes(lowerSearchTerm))
     );
   }
 
-  return trails;
+  // Limit results
+  // When searching by location, allow more results to be returned
+  const finalLimit = normalizedLocation ? limitCount * 3 : limitCount;
+  return filteredTrails.slice(0, finalLimit);
 };
 
 /**
@@ -356,6 +458,82 @@ export const getFeedPosts = async (followingUserIds: string[], limitCount: numbe
   });
 
   return posts;
+};
+
+/**
+ * Get real-time feed posts with onSnapshot listener
+ * Handles chunked queries for following lists > 10 users (Firestore 'in' limit)
+ */
+export const subscribeToFeedPosts = (
+  followingUserIds: string[],
+  callback: (posts: Post[]) => void,
+  limitCount: number = 50
+): (() => void) => {
+  if (followingUserIds.length === 0) {
+    callback([]);
+    return () => {};
+  }
+
+  const postsRef = collection(db, 'posts');
+  const unsubscribers: (() => void)[] = [];
+  const allPosts: Map<string, Post> = new Map();
+
+  // Split following list into chunks of 10 (Firestore 'in' limit)
+  const chunks: string[][] = [];
+  for (let i = 0; i < followingUserIds.length; i += 10) {
+    chunks.push(followingUserIds.slice(i, i + 10));
+  }
+
+  // Subscribe to each chunk
+  chunks.forEach((chunk) => {
+    const q = query(
+      postsRef,
+      where('userId', 'in', chunk),
+      orderBy('createdAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        // Update posts from this chunk
+        snap.forEach((doc) => {
+          const data = doc.data();
+          const post: Post = {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+            comments: (data.comments || []).map((c: any) => ({
+              ...c,
+              createdAt: c.createdAt?.toDate() || new Date(),
+            })),
+          } as Post;
+          allPosts.set(doc.id, post);
+        });
+
+        // Sort all posts by createdAt desc and return top limitCount
+        const sorted = Array.from(allPosts.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        callback(sorted.slice(0, limitCount));
+      },
+      (err) => {
+        console.warn('Feed listener error:', err);
+      }
+    );
+
+    unsubscribers.push(unsubscribe);
+  });
+
+  // Return unsubscribe function that unsubscribes from all chunks
+  return () => {
+    unsubscribers.forEach((unsub) => {
+      try {
+        unsub();
+      } catch {}
+    });
+  };
 };
 
 /**
