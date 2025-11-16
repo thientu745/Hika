@@ -154,7 +154,7 @@ export const AddHikeModal: React.FC<AddHikeModalProps> = ({
   return (
     <>
       <Modal
-        visible={visible}
+        visible={visible && !(selectedTrail && mode === 'log')}
         transparent={true}
         animationType="slide"
         onRequestClose={handleClose}
