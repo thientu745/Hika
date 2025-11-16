@@ -116,6 +116,22 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
     if (liking) return;
 
     const isLiked = currentPost.likes?.includes(user.uid) || false;
+    const currentLikes = currentPost.likes || [];
+    
+    // Store previous state for error rollback
+    const previousPost = currentPost;
+
+    // Optimistic update
+    const optimisticLikes = isLiked
+      ? currentLikes.filter((id) => id !== user.uid)
+      : [...currentLikes, user.uid];
+    
+    const optimisticPost = {
+      ...currentPost,
+      likes: optimisticLikes,
+    };
+    setCurrentPost(optimisticPost);
+    onUpdate?.(optimisticPost);
 
     try {
       setLiking(true);
@@ -125,7 +141,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
         await likePost(currentPost.id, user.uid);
       }
 
-      // Refresh post data
+      // Refresh post data to ensure consistency
       const updatedPost = await getPost(currentPost.id);
       if (updatedPost) {
         setCurrentPost(updatedPost);
@@ -133,6 +149,9 @@ export const PostCard: React.FC<PostCardProps> = ({ post, onUpdate }) => {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      // Revert optimistic update on error
+      setCurrentPost(previousPost);
+      onUpdate?.(previousPost);
       Alert.alert('Error', 'Failed to update like. Please try again.');
     } finally {
       setLiking(false);

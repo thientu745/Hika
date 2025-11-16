@@ -515,6 +515,7 @@ export const getPost = async (postId: string): Promise<Post | null> => {
     return {
       id: postSnap.id,
       ...data,
+      likes: data.likes || [],
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
       comments: (data.comments || []).map((c: any) => ({
@@ -540,6 +541,7 @@ export const getUserPosts = async (userId: string, limitCount: number = 20): Pro
     posts.push({
       id: doc.id,
       ...data,
+      likes: data.likes || [],
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
       comments: (data.comments || []).map((c: any) => ({
@@ -575,6 +577,7 @@ export const getFeedPosts = async (followingUserIds: string[], limitCount: numbe
     posts.push({
       id: doc.id,
       ...data,
+      likes: data.likes || [],
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
       comments: (data.comments || []).map((c: any) => ({
@@ -629,6 +632,7 @@ export const subscribeToFeedPosts = (
           const post: Post = {
             id: doc.id,
             ...data,
+            likes: data.likes || [],
             createdAt: data.createdAt?.toDate() || new Date(),
             updatedAt: data.updatedAt?.toDate() || new Date(),
             comments: (data.comments || []).map((c: any) => ({

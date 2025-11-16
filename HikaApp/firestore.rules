@@ -53,8 +53,13 @@ service cloud.firestore {
       // Users can only create posts with their own userId
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       
-      // Users can only update/delete their own posts
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Users can update their own posts completely
+      // OR any authenticated user can update only the 'likes', 'comments', and 'updatedAt' fields (for like/unlike and comments)
+      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid) ||
+        (isAuthenticated() && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments', 'updatedAt']));
+      
+      // Users can only delete their own posts
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     

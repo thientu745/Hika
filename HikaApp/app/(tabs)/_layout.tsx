@@ -57,14 +57,22 @@ const TabsLayout = () => {
         }}
       />
       <Tabs.Screen
-            name='leaderboard'
-            options={{
-            title: "Leaderboard",
-            tabBarIcon: ({ color, size }) => (
-                <Ionicons name="trophy-outline" size={size} color={color} />
-            ),
-            }}
-        />
+        name='leaderboard'
+        options={{
+          title: "Leaderboard",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? "trophy" : "trophy-outline"} 
+              size={focused ? 28 : 24} 
+              color={color} 
+            />
+          ),
+          tabBarLabelStyle: ({ focused }: any) => ({
+            fontSize: focused ? 14 : 12,
+            fontWeight: focused ? 'bold' : '600',
+          }),
+        }}
+      />
       <Tabs.Screen
         name='profile'
         options={{

@@ -157,42 +157,42 @@ const Home = () => {
                   className="flex-row items-center py-3 border-b border-gray-700"
                   onPress={() => router.push(`/profile/${u.uid}` as any)}
                 >
-                  {u.profilePictureUrl ? (
-                    <Image
-                      source={{ uri: u.profilePictureUrl }}
-                      style={[
-                        {
-                          width: 42,
-                          height: 42,
-                          borderRadius: 21,
-                        },
-                        getRankBorderStyle((u.rank || "Copper") as UserRank),
-                      ]}
-                      contentFit="cover"
-                      className="mr-4"
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        {
-                          width: 42,
-                          height: 42,
-                          borderRadius: 21,
-                          backgroundColor: "#10b981",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        },
-                        getRankBorderStyle((u.rank || "Copper") as UserRank),
-                      ]}
-                      className="mr-4"
-                    >
-                      <Text className="text-white font-bold">
-                        {u.displayName?.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
+                  <View className="mr-3 items-center justify-center" style={{ width: 52, height: 52 }}>
+                    {u.profilePictureUrl ? (
+                      <Image
+                        source={{ uri: u.profilePictureUrl }}
+                        style={[
+                          {
+                            width: 42,
+                            height: 42,
+                            borderRadius: 21,
+                          },
+                          getRankBorderStyle((u.rank || "Copper") as UserRank),
+                        ]}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          {
+                            width: 42,
+                            height: 42,
+                            borderRadius: 21,
+                            backgroundColor: "#10b981",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          },
+                          getRankBorderStyle((u.rank || "Copper") as UserRank),
+                        ]}
+                      >
+                        <Text className="text-white font-bold">
+                          {u.displayName?.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <View className="flex-1">
-                    <Text className="text-white font-medium ml-3">
+                    <Text className="text-white font-medium">
                       {u.displayName}
                     </Text>
                     {(u as any).username ? (
