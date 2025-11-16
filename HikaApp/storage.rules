@@ -1,0 +1,56 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Profile pictures - users can only upload/update their own profile picture
+    // Match any file in profile-pictures folder where filename starts with userId
+    match /profile-pictures/{fileName} {
+      // TEMPORARY: Allow all authenticated users to write for testing
+      // TODO: Restrict to only allow users to upload their own pictures
+      // Anyone authenticated can read (view) profile pictures
+      allow read: if isAuthenticated();
+      
+      // Temporarily allow any authenticated user to write (for testing)
+      // This will be restricted once we confirm uploads work
+      allow write: if isAuthenticated();
+      
+      // Users can delete their own profile picture (temporarily allow all)
+      allow delete: if isAuthenticated();
+    }
+    
+    // Post images - users can upload images for their own posts
+    match /post-images/{userId}/{postId}/{fileName} {
+      // Anyone authenticated can read post images
+      allow read: if isAuthenticated();
+      
+      // Users can only upload images for their own posts
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Users can delete their own post images
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Trail images - any authenticated user can upload trail images
+    match /trail-images/{trailId}/{fileName} {
+      // Anyone authenticated can read trail images
+      allow read: if isAuthenticated();
+      
+      // Any authenticated user can upload trail images
+      allow write: if isAuthenticated();
+      
+      // Any authenticated user can delete trail images
+      allow delete: if isAuthenticated();
+    }
+    
+    // Default: deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
