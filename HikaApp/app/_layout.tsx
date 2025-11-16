@@ -1,10 +1,12 @@
 import { Stack } from "expo-router";
 import { AuthProvider } from "../contexts/AuthContext";
 import "../global.css";
+import Header from "../components/ui/Header";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <Header />
       <Stack>
         <Stack.Screen 
           name="(tabs)" 

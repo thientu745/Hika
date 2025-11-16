@@ -167,6 +167,39 @@ export const unfollowUser = async (currentUserId: string, targetUserId: string):
   ]);
 };
 
+/**
+ * Search users by displayName or username (client-side filtering).
+ * Note: Firestore recommended approach is to maintain search index (Algolia) for large datasets.
+ */
+export const searchUsers = async (searchTerm?: string, limitCount: number = 20): Promise<UserProfile[]> => {
+  const usersRef = collection(db, 'users');
+  const querySnapshot = await getDocs(usersRef);
+  const users: UserProfile[] = [];
+
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    users.push({
+      uid: docSnap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
+    } as UserProfile);
+  });
+
+  if (!searchTerm || searchTerm.trim() === '') {
+    return users.slice(0, limitCount);
+  }
+
+  const lower = searchTerm.toLowerCase();
+  const filtered = users.filter((u) => {
+    const dn = (u.displayName || '').toLowerCase();
+    const un = (u as any).username ? (u as any).username.toLowerCase() : '';
+    return dn.includes(lower) || un.includes(lower);
+  });
+
+  return filtered.slice(0, limitCount);
+};
+
 // ==================== Trail Operations ====================
 
 /**
