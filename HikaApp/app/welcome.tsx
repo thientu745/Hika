@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
@@ -24,8 +25,8 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center px-6">
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <View className="flex-1 items-center px-6 pt-16">
         {/* App Logo/Icon */}
         <View className="mb-8">
           <View className="w-24 h-24 bg-green-500 rounded-full items-center justify-center mb-4">
@@ -56,7 +57,7 @@ export default function WelcomeScreen() {
           </Link>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
