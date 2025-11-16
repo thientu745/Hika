@@ -1,0 +1,576 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  StatusBar,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
+import ActiveTrailMap from '../components/maps/ActiveTrailMap';
+import { useAuth } from '../contexts/AuthContext';
+
+interface LocationPoint {
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+  timestamp: Date;
+}
+
+const TrackScreen = () => {
+  const router = useRouter();
+  const { trailId } = useLocalSearchParams<{ trailId?: string }>();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    console.log('TrackScreen mounted, trailId:', trailId);
+  }, [trailId]);
+
+  const [isTracking, setIsTracking] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<LocationPoint | null>(null);
+  const [path, setPath] = useState<LocationPoint[]>([]);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [distance, setDistance] = useState(0); // in meters
+  const [elevationGain, setElevationGain] = useState(0); // in meters
+  const [isPaused, setIsPaused] = useState(false);
+
+  const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(null);
+  const lastLocationRef = useRef<LocationPoint | null>(null);
+  const lastElevationRef = useRef<number | null>(null);
+  const isPausedRef = useRef(false);
+  const timeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Request location permissions on mount
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted');
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Location permission is required to track your trail. Please enable it in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => router.back() },
+            { text: 'Settings', onPress: () => Location.requestForegroundPermissionsAsync() },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error requesting location permission:', error);
+      setLocationPermission(false);
+    }
+  };
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const startTracking = async () => {
+    if (locationPermission !== true) {
+      await requestLocationPermission();
+      if (locationPermission !== true) return;
+    }
+
+    try {
+      // Get initial location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+
+      const initialPoint: LocationPoint = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        altitude: location.coords.altitude || undefined,
+        timestamp: new Date(),
+      };
+
+      setCurrentLocation(initialPoint);
+      setPath([initialPoint]);
+      const now = new Date();
+      setStartTime(now);
+      setElapsedTime(0);
+      setDistance(0);
+      setElevationGain(0);
+      setIsTracking(true);
+      setIsPaused(false);
+      isPausedRef.current = false;
+      lastLocationRef.current = initialPoint;
+      lastElevationRef.current = initialPoint.altitude || null;
+      // Timer will be started by useEffect when startTime and isTracking change
+
+      // Start watching location with more frequent updates
+      locationSubscriptionRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 250, // Update every 250ms for smooth tracking
+          distanceInterval: 2, // Update every 2 meters for smoother path
+        },
+        (location) => {
+          if (!isPausedRef.current) {
+            const newPoint: LocationPoint = {
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              altitude: location.coords.altitude || undefined,
+              timestamp: new Date(),
+            };
+
+            setCurrentLocation(newPoint);
+
+            if (lastLocationRef.current) {
+              // Calculate distance
+              const segmentDistance = calculateDistance(
+                lastLocationRef.current.latitude,
+                lastLocationRef.current.longitude,
+                newPoint.latitude,
+                newPoint.longitude
+              );
+
+              // Only add point if it's at least 2 meters away (to reduce noise while keeping smooth path)
+              if (segmentDistance >= 2) {
+                setPath((prev) => [...prev, newPoint]);
+                setDistance((prev) => prev + segmentDistance);
+
+                // Calculate elevation gain
+                if (
+                  newPoint.altitude !== undefined &&
+                  lastElevationRef.current !== null &&
+                  newPoint.altitude > lastElevationRef.current
+                ) {
+                  const gain = newPoint.altitude - lastElevationRef.current;
+                  setElevationGain((prev) => prev + gain);
+                }
+
+                lastLocationRef.current = newPoint;
+                if (newPoint.altitude !== undefined) {
+                  lastElevationRef.current = newPoint.altitude;
+                }
+              }
+            } else {
+              lastLocationRef.current = newPoint;
+              if (newPoint.altitude !== undefined) {
+                lastElevationRef.current = newPoint.altitude;
+              }
+            }
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error starting tracking:', error);
+      Alert.alert('Error', 'Failed to start tracking. Please try again.');
+    }
+  };
+
+  const pauseTracking = () => {
+    setIsPaused(true);
+    isPausedRef.current = true;
+    // Pause the timer
+    if (timeIntervalRef.current) {
+      clearInterval(timeIntervalRef.current);
+      timeIntervalRef.current = null;
+    }
+  };
+
+  const resumeTracking = () => {
+    setIsPaused(false);
+    isPausedRef.current = false;
+    // Resume the timer - the useEffect will handle restarting it
+  };
+
+  const stopTracking = () => {
+    if (locationSubscriptionRef.current) {
+      locationSubscriptionRef.current.remove();
+      locationSubscriptionRef.current = null;
+    }
+    // Stop the timer
+    if (timeIntervalRef.current) {
+      clearInterval(timeIntervalRef.current);
+      timeIntervalRef.current = null;
+    }
+    setIsTracking(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
+  };
+
+  const resetTracking = () => {
+    Alert.alert(
+      'Reset Tracking',
+      'Are you sure you want to reset? This will clear all tracking data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: () => {
+            stopTracking();
+            setPath([]);
+            setCurrentLocation(null);
+            setDistance(0);
+            setElevationGain(0);
+            setStartTime(null);
+            setElapsedTime(0);
+            lastLocationRef.current = null;
+            lastElevationRef.current = null;
+            isPausedRef.current = false;
+            if (timeIntervalRef.current) {
+              clearInterval(timeIntervalRef.current);
+              timeIntervalRef.current = null;
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (locationSubscriptionRef.current) {
+        locationSubscriptionRef.current.remove();
+      }
+      if (timeIntervalRef.current) {
+        clearInterval(timeIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Update elapsed time when startTime changes
+  useEffect(() => {
+    if (startTime && isTracking && !isPaused) {
+      // Clear any existing interval
+      if (timeIntervalRef.current) {
+        clearInterval(timeIntervalRef.current);
+      }
+      // Start new interval
+      timeIntervalRef.current = setInterval(() => {
+        if (!isPausedRef.current && startTime) {
+          setElapsedTime((new Date().getTime() - startTime.getTime()) / 1000);
+        }
+      }, 100); // Update every 100ms for smooth UI
+    } else if (!isTracking || isPaused) {
+      // Clear interval when not tracking or paused
+      if (timeIntervalRef.current) {
+        clearInterval(timeIntervalRef.current);
+        timeIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (timeIntervalRef.current) {
+        clearInterval(timeIntervalRef.current);
+      }
+    };
+  }, [startTime, isTracking, isPaused]);
+
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatDistance = (meters: number): string => {
+    if (meters < 1000) {
+      return `${Math.round(meters)}m`;
+    }
+    return `${(meters / 1000).toFixed(2)}km`;
+  };
+
+  // elapsedTime is now managed by state and updated via interval
+
+  if (locationPermission === null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#10b981" />
+          <Text style={styles.loadingText}>Requesting location permission...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (locationPermission === false) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Track Trail</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Ionicons name="location-outline" size={64} color="#EF4444" />
+          <Text style={styles.errorTitle}>Location Permission Required</Text>
+          <Text style={styles.errorText}>
+            Please enable location permissions in your device settings to track your trail.
+          </Text>
+          <TouchableOpacity
+            style={styles.permissionButton}
+            onPress={requestLocationPermission}
+          >
+            <Text style={styles.permissionButtonText}>Request Permission</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Track Trail</Text>
+        {isTracking && (
+          <TouchableOpacity onPress={resetTracking} style={styles.resetButton}>
+            <Ionicons name="refresh-outline" size={24} color="#EF4444" />
+          </TouchableOpacity>
+        )}
+        {!isTracking && <View style={{ width: 24 }} />}
+      </View>
+
+      {/* Map */}
+      <View style={styles.mapContainer}>
+        <ActiveTrailMap
+          path={path}
+          currentLocation={currentLocation || undefined}
+          height={400}
+        />
+      </View>
+
+      {/* Stats */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Ionicons name="time-outline" size={24} color="#10b981" />
+          <Text style={styles.statValue}>{formatTime(elapsedTime)}</Text>
+          <Text style={styles.statLabel}>Time</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Ionicons name="resize-outline" size={24} color="#10b981" />
+          <Text style={styles.statValue}>{formatDistance(distance)}</Text>
+          <Text style={styles.statLabel}>Distance</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Ionicons name="trending-up-outline" size={24} color="#10b981" />
+          <Text style={styles.statValue}>{Math.round(elevationGain)}m</Text>
+          <Text style={styles.statLabel}>Elevation</Text>
+        </View>
+      </View>
+
+      {/* Controls */}
+      <View style={styles.controlsContainer}>
+        {!isTracking ? (
+          <TouchableOpacity
+            style={[styles.controlButton, styles.startButton]}
+            onPress={startTracking}
+          >
+            <Ionicons name="play" size={28} color="#FFFFFF" />
+            <Text style={styles.controlButtonText}>Start Tracking</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.trackingControls}>
+            {isPaused ? (
+              <TouchableOpacity
+                style={[styles.controlButton, styles.resumeButton]}
+                onPress={resumeTracking}
+              >
+                <Ionicons name="play" size={28} color="#FFFFFF" />
+                <Text style={styles.controlButtonText}>Resume</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.controlButton, styles.pauseButton]}
+                onPress={pauseTracking}
+              >
+                <Ionicons name="pause" size={28} color="#FFFFFF" />
+                <Text style={styles.controlButtonText}>Pause</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.controlButton, styles.stopButton]}
+              onPress={stopTracking}
+            >
+              <Ionicons name="stop" size={28} color="#FFFFFF" />
+              <Text style={styles.controlButtonText}>Stop</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+  },
+  backButton: {
+    padding: 4,
+  },
+  resetButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  mapContainer: {
+    margin: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: '#F9FAFB',
+    marginHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  controlsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+  },
+  controlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  startButton: {
+    backgroundColor: '#10b981',
+  },
+  pauseButton: {
+    backgroundColor: '#F59E0B',
+  },
+  resumeButton: {
+    backgroundColor: '#10b981',
+  },
+  stopButton: {
+    backgroundColor: '#EF4444',
+  },
+  controlButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  trackingControls: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  permissionButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  permissionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default TrackScreen;
+
