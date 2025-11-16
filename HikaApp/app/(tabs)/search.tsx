@@ -188,7 +188,7 @@ const Search = () => {
 
           {/* Location Filter - State Picker */}
           <View className="mb-4">
-            <Text className="text-gray-700 mb-2 font-medium">State</Text>
+            <Text className="text-white mb-2 font-medium">State</Text>
             <TouchableOpacity
               onPress={() => setShowStatePicker(true)}
               className="border border-gray-300 rounded-lg px-4 py-3 flex-row items-center justify-between bg-white"
@@ -204,7 +204,7 @@ const Search = () => {
                 className="mt-2 flex-row items-center"
               >
                 <Ionicons name="close-circle" size={16} color="#6B7280" />
-                <Text className="text-sm text-gray-600 ml-1">Clear state filter</Text>
+                <Text className="text-sm text-gray-800 ml-1">Clear state filter</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -511,7 +511,7 @@ const Search = () => {
               <Text className="mt-4 text-white text-center font-semibold">
                 Start typing to search for trails
               </Text>
-              <Text className="mt-2 text-sm text-gray-500 text-center px-4">
+              <Text className="mt-2 text-sm text-white text-center px-4">
                 Enter a trail name or location to search. You can also filter by difficulty after searching.
               </Text>
             </View>

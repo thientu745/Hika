@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View, Platform } from 'react-native'
 import { Tabs } from 'expo-router'
 import React from 'react'
 import { Ionicons } from "@expo/vector-icons"
@@ -7,17 +7,18 @@ const TabsLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "hika-green", // hika-darkgreen
-        tabBarInactiveTintColor: "hika-green", // black
+        tabBarActiveTintColor: "#92C59F", // hika-green
+        tabBarInactiveTintColor: "#516D58", // hika-darkgreen
         headerShown: false,
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
         },
         tabBarStyle: {
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 85 : 60,
+          paddingBottom: Platform.OS === 'ios' ? 25 : 8,
           paddingTop: 8,
+          backgroundColor: '#ffffff',
         },
       }}
     >
