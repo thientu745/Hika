@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { getTrail } from '../../services/database';
 import { Ionicons } from '@expo/vector-icons';
+import TrailMap from '../../components/maps/TrailMap';
 import type { Trail } from '../../types';
 
 const TrailDetail = () => {
@@ -213,10 +214,11 @@ const TrailDetail = () => {
             </Text>
           </View>
 
-          {/* Coordinates */}
+          {/* Map */}
           <View className="mb-6">
-            <Text className="text-lg font-semibold text-gray-900 mb-2">Location</Text>
-            <View className="bg-gray-50 rounded-lg p-3">
+            <Text className="text-lg font-semibold text-gray-900 mb-3">Trail Map</Text>
+            <TrailMap trail={trail} height={300} />
+            <View className="mt-3 bg-gray-50 rounded-lg p-3">
               <Text className="text-sm text-gray-600 mb-1">Coordinates</Text>
               <Text className="text-base text-gray-900 font-mono">
                 {trail.coordinates.latitude.toFixed(6)}, {trail.coordinates.longitude.toFixed(6)}
