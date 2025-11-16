@@ -3,6 +3,7 @@ import React from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingScreen } from '../../components/ui/LoadingScreen';
+import { PostComposer } from '../../components/ui/PostComposer';
 
 const Profile = () => {
   const { user, userProfile, signOut, loading } = useAuth();
@@ -53,6 +54,13 @@ const Profile = () => {
             <Text className="text-gray-600 mt-2 text-center">{bio}</Text>
           )}
         </View>
+
+        {/* Composer (create posts) */}
+        {user && (
+          <View className="mb-4">
+            <PostComposer />
+          </View>
+        )}
 
         {/* Stats */}
         <View className="bg-gray-50 rounded-lg p-4 mb-6">
