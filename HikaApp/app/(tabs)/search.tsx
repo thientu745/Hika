@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Switch } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Alert, Switch, Modal, StyleSheet, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Redirect, useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,6 +7,17 @@ import { LoadingScreen } from '../../components/ui/LoadingScreen';
 import { searchTrailsFromFirestore, searchTrailsFromOverpass, saveOverpassTrailToFirestore, searchAllTrails } from '../../services/trailSearch';
 import { Ionicons } from '@expo/vector-icons';
 import type { Trail } from '../../types';
+
+// List of all US states
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
+  'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
+  'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+  'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
+  'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
+  'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+  'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+].sort();
 
 const Search = () => {
   const { user, loading } = useAuth();
@@ -21,6 +33,7 @@ const Search = () => {
   const [savedTrailsCount, setSavedTrailsCount] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<'none' | 'distance-asc' | 'distance-desc'>('none');
   const [useOpenStreetMap, setUseOpenStreetMap] = useState(true);
+  const [showStatePicker, setShowStatePicker] = useState(false);
 
   // Search function - only called when search button is pressed (must be before early returns)
   const performSearch = useCallback(async () => {
@@ -108,21 +121,23 @@ const Search = () => {
   };
 
   // Sort trails based on selected sort option
+  // Default: sort by distance descending (longest to shortest)
   const getSortedTrails = (trailsToSort: Trail[]): Trail[] => {
-    if (sortBy === 'none') {
-      return trailsToSort;
-    }
-
     const sorted = [...trailsToSort].sort((a, b) => {
       const distanceA = a.distance || 0;
       const distanceB = b.distance || 0;
 
+      // Handle trails without distance - put them at the end
+      if (distanceA === 0 && distanceB === 0) return 0;
+      if (distanceA === 0) return 1; // a goes to end
+      if (distanceB === 0) return -1; // b goes to end
+
       if (sortBy === 'distance-asc') {
         return distanceA - distanceB;
-      } else if (sortBy === 'distance-desc') {
+      } else {
+        // Default: sort by distance descending (longest to shortest)
         return distanceB - distanceA;
       }
-      return 0;
     });
 
     return sorted;
@@ -170,15 +185,96 @@ const Search = () => {
             </View>
           </View>
 
-          {/* Location Filter */}
+          {/* Location Filter - State Picker */}
           <View className="mb-4">
-            <TextInput
-              className="border border-gray-300 rounded-lg px-4 py-3 text-base"
-              placeholder="Filter by location (e.g., California, Mountain View)"
-              value={locationFilter}
-              onChangeText={setLocationFilter}
-            />
+            <Text className="text-gray-700 mb-2 font-medium">State</Text>
+            <TouchableOpacity
+              onPress={() => setShowStatePicker(true)}
+              className="border border-gray-300 rounded-lg px-4 py-3 flex-row items-center justify-between bg-white"
+            >
+              <Text className={`text-base ${locationFilter ? 'text-gray-900' : 'text-gray-400'}`}>
+                {locationFilter || 'Select a state...'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#6B7280" />
+            </TouchableOpacity>
+            {locationFilter && (
+              <TouchableOpacity
+                onPress={() => setLocationFilter('')}
+                className="mt-2 flex-row items-center"
+              >
+                <Ionicons name="close-circle" size={16} color="#6B7280" />
+                <Text className="text-sm text-gray-600 ml-1">Clear state filter</Text>
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* State Picker Modal */}
+          {showStatePicker && (
+            <Modal
+              visible={showStatePicker}
+              transparent={true}
+              animationType="slide"
+              onRequestClose={() => setShowStatePicker(false)}
+              statusBarTranslucent={Platform.OS !== 'web'}
+            >
+              <View style={styles.modalOverlay}>
+                <TouchableOpacity
+                  style={styles.backdrop}
+                  activeOpacity={1}
+                  onPress={() => setShowStatePicker(false)}
+                />
+                <View style={styles.modalContentWrapper}>
+                  <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                      <Text style={styles.modalHeaderText}>Select State</Text>
+                      <TouchableOpacity onPress={() => setShowStatePicker(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                        <Ionicons name="close" size={24} color="#1F2937" />
+                      </TouchableOpacity>
+                    </View>
+                    <ScrollView 
+                      style={styles.modalScrollView}
+                      contentContainerStyle={styles.modalScrollContent}
+                      showsVerticalScrollIndicator={true}
+                      keyboardShouldPersistTaps="handled"
+                      nestedScrollEnabled={true}
+                    >
+                      <TouchableOpacity
+                        style={[styles.stateOption, !locationFilter && styles.stateOptionSelected]}
+                        onPress={() => {
+                          setLocationFilter('');
+                          setShowStatePicker(false);
+                        }}
+                      >
+                        <Text style={[styles.stateOptionText, !locationFilter && styles.stateOptionTextSelected]}>
+                          All States
+                        </Text>
+                      </TouchableOpacity>
+                      {US_STATES.map((state) => (
+                        <TouchableOpacity
+                          key={state}
+                          style={[styles.stateOption, locationFilter === state && styles.stateOptionSelected]}
+                          onPress={() => {
+                            setLocationFilter(state);
+                            setShowStatePicker(false);
+                          }}
+                        >
+                          <View style={styles.stateOptionRow}>
+                            <Text style={[styles.stateOptionText, locationFilter === state && styles.stateOptionTextSelected]}>
+                              {state}
+                            </Text>
+                            {locationFilter === state && (
+                              <Ionicons name="checkmark" size={20} color="#10b981" />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  <SafeAreaView edges={['bottom']} style={styles.safeAreaBottom} />
+                </View>
+              </View>
+            </Modal>
+          )}
 
           {/* Difficulty Filter */}
           <View className="mb-6">
@@ -278,10 +374,10 @@ const Search = () => {
               </Text>
               <Text className="mt-2 text-sm text-gray-500 text-center px-4 mb-4">
                 {locationFilter.trim() 
-                  ? 'No trails found matching your search. Try a different search term or location.'
+                  ? 'No trails found matching your search. Try a different search term or state.'
                   : searchQuery.trim()
-                    ? 'No trails found with that name. Try adding a location filter (e.g., "Oregon", "California") to search OpenStreetMap for more trails.'
-                    : 'Try adding a location filter (e.g., "Oregon", "California") to search for trails.'}
+                    ? 'No trails found with that name. Try selecting a state to search OpenStreetMap for more trails.'
+                    : 'Try selecting a state to search for trails.'}
               </Text>
             </View>
           )}
@@ -476,7 +572,7 @@ const Search = () => {
                 Start typing to search for trails
               </Text>
               <Text className="mt-2 text-sm text-gray-500 text-center px-4">
-                Enter a trail name or location to search. You can also filter by difficulty after searching.
+                Enter a trail name or select a state to search. You can also filter by difficulty after searching.
               </Text>
             </View>
           )}
@@ -485,5 +581,80 @@ const Search = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '85%',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  modalScrollView: {
+    maxHeight: Platform.OS === 'web' ? 600 : 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 20,
+  },
+  stateOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  stateOptionSelected: {
+    backgroundColor: '#ECFDF5',
+  },
+  stateOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  stateOptionText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  stateOptionTextSelected: {
+    color: '#047857',
+    fontWeight: '600',
+  },
+  safeAreaBottom: {
+    backgroundColor: '#FFFFFF',
+  },
+});
 
 export default Search;
