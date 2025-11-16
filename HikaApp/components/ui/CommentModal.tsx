@@ -18,7 +18,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
-import { addComment, getPost, getTrail } from '../../services/database';
+import { addComment, getPost, getTrail, getUserProfiles } from '../../services/database';
 import TrailMap from '../maps/TrailMap';
 import type { Post, Comment, Trail } from '../../types';
 
@@ -47,6 +47,7 @@ export const CommentModal: React.FC<CommentModalProps> = ({
   const imageListRef = useRef<FlatList>(null);
   const [trail, setTrail] = useState<Trail | null>(null);
   const [loadingTrail, setLoadingTrail] = useState(false);
+  const [commentProfilePictures, setCommentProfilePictures] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (visible) {
@@ -67,12 +68,49 @@ export const CommentModal: React.FC<CommentModalProps> = ({
       const updatedPost = await getPost(post.id);
       if (updatedPost) {
         setCurrentPost(updatedPost);
+        // Load profile pictures for comments that don't have them
+        if (updatedPost.comments && updatedPost.comments.length > 0) {
+          loadCommentProfilePictures(updatedPost.comments);
+        }
       }
     } catch (error) {
       console.error('Error loading post:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadCommentProfilePictures = async (comments: Comment[]) => {
+    const picturesToLoad: Record<string, string> = {};
+    const userIdsToFetch: string[] = [];
+
+    // Check which comments need profile pictures
+    comments.forEach((comment) => {
+      if (!comment.userProfilePictureUrl && comment.userId) {
+        // Only add unique user IDs
+        if (!userIdsToFetch.includes(comment.userId)) {
+          userIdsToFetch.push(comment.userId);
+        }
+      } else if (comment.userProfilePictureUrl) {
+        picturesToLoad[comment.userId] = comment.userProfilePictureUrl;
+      }
+    });
+
+    // Fetch profile pictures for comments that don't have them (batch fetch)
+    if (userIdsToFetch.length > 0) {
+      try {
+        const profiles = await getUserProfiles(userIdsToFetch);
+        profiles.forEach((profile) => {
+          if (profile.profilePictureUrl) {
+            picturesToLoad[profile.uid] = profile.profilePictureUrl;
+          }
+        });
+      } catch (error) {
+        console.error('Error loading comment profile pictures:', error);
+      }
+    }
+
+    setCommentProfilePictures(picturesToLoad);
   };
 
   const loadTrail = async () => {
@@ -385,33 +423,37 @@ export const CommentModal: React.FC<CommentModalProps> = ({
                   </Text>
                 </View>
               ) : (
-                currentPost.comments.map((comment: Comment) => (
-                  <View key={comment.id} className="mb-4 flex-row">
-                    {comment.userProfilePictureUrl ? (
-                      <Image
-                        source={{ uri: comment.userProfilePictureUrl }}
-                        className="w-8 h-8 rounded-full mr-3"
-                      />
-                    ) : (
-                      <View className="w-8 h-8 bg-green-500 rounded-full items-center justify-center mr-3">
-                        <Text className="text-white font-bold text-xs">
-                          {comment.userDisplayName?.charAt(0).toUpperCase() || 'U'}
+                currentPost.comments.map((comment: Comment) => {
+                  const profilePictureUrl = comment.userProfilePictureUrl || commentProfilePictures[comment.userId];
+                  return (
+                    <View key={comment.id} className="mb-4 flex-row">
+                      {profilePictureUrl ? (
+                        <Image
+                          source={{ uri: profilePictureUrl }}
+                          className="w-8 h-8 rounded-full mr-3"
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View className="w-8 h-8 bg-green-500 rounded-full items-center justify-center mr-3">
+                          <Text className="text-white font-bold text-xs">
+                            {comment.userDisplayName?.charAt(0).toUpperCase() || 'U'}
+                          </Text>
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <View className="bg-gray-100 rounded-lg px-3 py-2">
+                          <Text className="text-gray-900 font-semibold text-sm mb-1">
+                            {comment.userDisplayName}
+                          </Text>
+                          <Text className="text-gray-700 text-sm">{comment.text}</Text>
+                        </View>
+                        <Text className="text-gray-400 text-xs mt-1 ml-3">
+                          {formatDate(comment.createdAt)}
                         </Text>
                       </View>
-                    )}
-                    <View className="flex-1">
-                      <View className="bg-gray-100 rounded-lg px-3 py-2">
-                        <Text className="text-gray-900 font-semibold text-sm mb-1">
-                          {comment.userDisplayName}
-                        </Text>
-                        <Text className="text-gray-700 text-sm">{comment.text}</Text>
-                      </View>
-                      <Text className="text-gray-400 text-xs mt-1 ml-3">
-                        {formatDate(comment.createdAt)}
-                      </Text>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
             </View>
           </ScrollView>
